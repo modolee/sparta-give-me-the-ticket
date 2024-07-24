@@ -18,11 +18,11 @@ export class Bookmark {
   id: number;
 
   //유저 엔티티 외래키 설정
-  @Column({ name: 'user_id', type: 'int' })
+  @Column({ name: 'user_id', type: 'int', unsigned: true })
   userId: number;
 
   //공연 엔티티 외래키 설정
-  @Column({ name: 'show_id', type: 'int' })
+  @Column({ name: 'show_id', type: 'int', unsigned: true })
   showId: number;
 
   @CreateDateColumn()
