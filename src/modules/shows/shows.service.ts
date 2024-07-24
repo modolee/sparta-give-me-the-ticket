@@ -92,7 +92,7 @@ export class ShowsService {
     return bookmark;
   }
   /* 티켓 예매 */
-  async createTicket(showId: number, user: User, scheduleId: number) {
+  async createTicket(showId: number, scheduleId: number, user: User) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -166,7 +166,7 @@ export class ShowsService {
   }
 
   /*티켓 환불 */
-  async refundTicket(showId: number, ticketId: number) {
+  async refundTicket(showId: number, ticketId: number, schedule: Schedule) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -178,6 +178,18 @@ export class ShowsService {
       });
       if (!ticket) {
         throw new NotFoundException(SHOW_TICKET_MESSAGES.COMMON.TICKET.NOT_FOUND);
+      }
+
+      // 현재의 시간에서 1시간 전으로 시간 제한을 설정
+      const oneHoursBefore = new Date();
+      oneHoursBefore.setHours(oneHoursBefore.getHours() - 1);
+
+      // string 형식인 time을 Date 객체로 변환
+      const showTime = new Date(schedule.time);
+
+      // 공연 시간이 1시간 이전일 경우 티켓을 구매하기 어렵다는 메시지 전달
+      if (showTime < oneHoursBefore) {
+        throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.TIME.EXPIRED);
       }
 
       await queryRunner.commitTransaction();

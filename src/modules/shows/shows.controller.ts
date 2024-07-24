@@ -17,6 +17,7 @@ import { ShowCategory } from 'src/commons/types/shows/show-category.type';
 import { User } from 'src/entities/users/user.entity';
 import { USER_BOOKMARK_MESSAGES } from 'src/commons/constants/users/user-bookmark-messages.constant';
 import { AuthGuard } from '@nestjs/passport';
+import { Schedule } from 'src/entities/shows/schedule.entity';
 
 @Controller('shows')
 export class ShowsController {
@@ -87,7 +88,10 @@ export class ShowsController {
   @UseGuards(AuthGuard('jwt'))
   async deleteBookmark(@Param('showId') showId: number, @Param('bookmarkId') bookmarkId: number) {
     await this.showsService.deleteBookmark(showId, bookmarkId);
-    return { message: USER_BOOKMARK_MESSAGES.COMMON.CANCEL_BOOKMARK.SUCCESS.COMPLETED };
+    return {
+      status: HttpStatus.OK,
+      message: USER_BOOKMARK_MESSAGES.COMMON.CANCEL_BOOKMARK.SUCCESS.COMPLETED,
+    };
   }
   /**
    * 티켓 예매
@@ -97,8 +101,8 @@ export class ShowsController {
   @Post(':showId/ticket')
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(AuthGuard('jwt'))
-  async createTicket(@Param('showId') showId: number, user: User, scheduleId: number) {
-    return this.showsService.createTicket(showId, user, scheduleId);
+  async createTicket(@Param('showId') showId: number, scheduleId: number, user: User) {
+    return this.showsService.createTicket(showId, scheduleId, user);
   }
   /**
    * 티켓 환불
@@ -109,8 +113,12 @@ export class ShowsController {
   @Delete(':showId/ticket/:ticketId')
   @HttpCode(HttpStatus.OK)
   @UseGuards(AuthGuard('jwt'))
-  async refundTicket(@Param('showId') showId: number, @Param('ticketId') ticketId: number) {
-    await this.showsService.refundTicket(showId, ticketId);
-    return;
+  async refundTicket(
+    @Param('showId') showId: number,
+    @Param('ticketId') ticketId: number,
+    schedule: Schedule
+  ) {
+    await this.showsService.refundTicket(showId, ticketId, schedule);
+    return { status: HttpStatus.OK };
   }
 }
