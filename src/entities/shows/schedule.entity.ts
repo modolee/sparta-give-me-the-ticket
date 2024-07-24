@@ -1,22 +1,33 @@
-import { Show } from "./shows/show.entity";
+import { IsMilitaryTime } from 'class-validator';
+import {
+  Column,
+  CreateDateColumn,
+  DeleteDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
+import { Show } from './show.entity';
 
-@Entity({ name: "schedules" })
+@Entity({ name: 'schedules' })
 export class Schedule {
   @PrimaryGeneratedColumn({ unsigned: true })
   id: number;
 
   //공연 엔티티 외래키 설정
-  @Column({ type: "int", name: "show_id", unsigned: true })
+  @Column({ type: 'int', name: 'show_id', unsigned: true })
   showId: number;
 
-  @Column({ type: "date" })
+  @Column({ type: 'date' })
   date: Date;
 
-  @Column({ type: "time" })
+  @Column({ type: 'time' })
   @IsMilitaryTime()
   time: string;
 
-  @Column({ type: "int" })
+  @Column({ type: 'int' })
   remainSeat: number;
 
   @CreateDateColumn()
@@ -29,7 +40,7 @@ export class Schedule {
   deletedAt: Date | null;
 
   // Relation - [schedules] N : 1 [shows]
-  @ManytoOne((type) => Show, (show) => show.schedules, { onDelete: "CASCADE" })
-  @JoinColumn({ name: "show_id" })
+  @ManyToOne((type) => Show, (show) => show.schedules, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'show_id' })
   show: Show;
 }
