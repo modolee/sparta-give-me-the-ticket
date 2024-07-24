@@ -5,11 +5,12 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { configModuleValidationSchema } from 'src/configs/env-validation.config';
 import { typeOrmModuleOptions } from 'src/configs/database.config';
-import { AuthModule } from './auth/auth.module';
-import { UsersModule } from './users/users.module';
-import { ShowsModule } from './shows/shows.module';
-import { TradesModule } from './trades/trades.module';
-import { ImagesModule } from './images/images.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { UsersModule } from './modules/users/users.module';
+import { ShowsModule } from './modules/shows/shows.module';
+import { TradesModule } from './modules/trades/trades.module';
+import { ImagesModule } from './modules/images/images.module';
+
 
 @Module({
   imports: [
