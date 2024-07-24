@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Show } from 'src/entities/shows/show.entity';
 import { Ticket } from 'src/entities/shows/ticket.entity';
@@ -22,7 +22,7 @@ export class ShowsService {
   }
 
   /*공연 목록 조회 */
-  async getShowList(category: string, title : string) {
+  async getShowList(category: string, title: string) {
     return;
   }
 
@@ -42,7 +42,22 @@ export class ShowsService {
   }
 
   /*공연 찜하기 생성 */
-  async createBookmark(showId: number) {
+  async createBookmark(showId: number, user: User) {
+    //찜할 공연을 찾습니다.
+    const show = await this.showRepository.findOne({ where: { id: showId } });
+    if (!show) {
+      throw new NotFoundException('공연이 존재하지 않습니다.');
+    }
+    const bookmark = await this.bookmarkRepository.create({
+      userId: user.id,
+      showId: show.id,
+    });
+    if (bookmark) {
+      throw new Error('이미 찜한 공연입니다.');
+    }
+
+    await this.bookmarkRepository.save(bookmark);
+
     return;
   }
 
