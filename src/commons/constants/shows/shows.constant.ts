@@ -1,0 +1,1 @@
+export const MIN_SHOW_CONTENT_LENGTH = 150;
