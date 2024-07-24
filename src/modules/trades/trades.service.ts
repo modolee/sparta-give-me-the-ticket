@@ -9,6 +9,7 @@ import { Trade } from 'src/entities/trades/trade.entity';
 import { TradeLog } from 'src/entities/trades/trade-log.entity';
 import { Show } from 'src/entities/shows/show.entity';
 import { Schedule } from 'src/entities/shows/schedule.entity';
+import { Ticket } from 'src/entities/shows/ticket.entity';
 
 @Injectable()
 export class TradesService {
@@ -20,8 +21,20 @@ export class TradesService {
     @InjectRepository(Show)
     private ShowRepository: Repository<Show>,
     @InjectRepository(Schedule)
-    private ScheduleRepository: Repository<Schedule>
+    private ScheduleRepository: Repository<Schedule>,
+    @InjectRepository(Ticket)
+    private TicketRepository: Repository<Ticket>
   ) {}
+
+  combineDateAndTime(dateStr: string, timeStr: string) {
+    const date = new Date(dateStr);
+    const [hours, minutes, seconds] = timeStr.split(':').map(Number);
+    date.setHours(hours);
+    date.setMinutes(minutes);
+    date.setSeconds(seconds);
+    return date;
+  }
+  //=========ConvenienceFunction======================
   // async
   // async
   // async
@@ -87,7 +100,23 @@ export class TradesService {
 
     return trade_list;
   }
-  async createTrade(createTradeDto: CreateTradeDto) {}
+
+  //sellerId는 인증을 통해 받게 될 예정
+  async createTrade(createTradeDto: CreateTradeDto) {
+    const { ticketId, price } = createTradeDto;
+
+    let result = { price };
+    //ticket에서 showId를 추출
+    const ticket = await this.TicketRepository.findOne({
+      where: { id: ticketId },
+    });
+
+    const showId: number = ticket.showId;
+
+    const schedule = await this.ScheduleRepository.findOne({ where: { showId } });
+
+    return { 1: schedule.date, 2: schedule.time };
+  }
   async updateTrade(updateTradeDto: UpdateTradeDto) {}
   async deleteTrade(tradeId: number) {}
   async createTicket(tradeId: number) {}
