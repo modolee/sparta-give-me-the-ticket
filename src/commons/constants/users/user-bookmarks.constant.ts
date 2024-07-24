@@ -1,3 +1,3 @@
-export const USER_BOOKMARK_MESSAGES = {
+export const USER_BOOKMARKS = {
   COMMON: {},
 };

@@ -16,8 +16,8 @@ export class UpdateShowDto extends PartialType(CreateShowDto) {
   category?: ShowCategory;
 
   @IsOptional()
-  @IsString()
-  runtime?: string;
+  @IsNumber()
+  runtime?: number;
 
   @IsOptional()
   @IsString()
@@ -28,10 +28,6 @@ export class UpdateShowDto extends PartialType(CreateShowDto) {
   price?: number;
 
   @IsOptional()
-  @IsArray()
-  imageUrl?: Text[];
-
-  @IsOptional()
   @IsNumber()
-  totalSeats?: number;
+  totalSeat?: number;
 }

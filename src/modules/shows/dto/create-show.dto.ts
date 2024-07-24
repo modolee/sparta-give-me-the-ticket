@@ -1,35 +1,32 @@
 import { IsArray, IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { SHOW_MESSAGES } from 'src/commons/constants/shows/show-messages.constant';
 import { ShowCategory } from 'src/commons/types/shows/show-category.type';
 
 export class CreateShowDto {
   @IsString()
-  @IsNotEmpty({ message: '공연명을 입력해주세요.' })
+  @IsNotEmpty({ message: SHOW_MESSAGES.COMMON.TITLE.REQUIRED })
   title: string;
 
   @IsString()
-  @IsNotEmpty({ message: '공연 설명을 입력해주세요.' })
+  @IsNotEmpty({ message: SHOW_MESSAGES.COMMON.CONTENT.REQUIRED })
   content: string;
 
-  @IsNotEmpty({ message: '공연 카테고리를 입력해주세요.' })
+  @IsNotEmpty({ message: SHOW_MESSAGES.COMMON.CATEGORY.REQUIRED })
   category: ShowCategory;
 
-  @IsString()
-  @IsNotEmpty({ message: '공연 소요시간을 입력해주세요.' })
-  runtime: string;
+  @IsNumber()
+  @IsNotEmpty({ message: SHOW_MESSAGES.COMMON.RUNTIME.REQUIRED })
+  runtime: number;
 
   @IsString()
-  @IsNotEmpty({ message: '공연 장소를 입력해주세요.' })
+  @IsNotEmpty({ message: SHOW_MESSAGES.COMMON.LOCATION.REQUIRED })
   location: string;
 
   @IsNumber()
-  @IsNotEmpty({ message: '공연 금액을 입력해주세요.' })
+  @IsNotEmpty({ message: SHOW_MESSAGES.COMMON.PRICE.REQUIRED })
   price: number;
 
-  @IsArray()
-  @IsNotEmpty({ message: '공연 이미지를 입력해주세요.' })
-  imageUrl: Text[];
-
   @IsNumber()
-  @IsNotEmpty({ message: '공연 총 좌석 수를 입력해주세요.' })
-  totalSeats: number;
+  @IsNotEmpty({ message: SHOW_MESSAGES.COMMON.TOTAL_SEATS.REQUIRED })
+  totalSeat: number;
 }
