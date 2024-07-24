@@ -5,7 +5,7 @@ on:
   workflow_run: # 특정 workflow가 실행됐을 때
     workflows: ['Sparta Nest.js CI'] # CI workflow
     types: [completed] # 완료 되었을 때
-    branches: [main] # main 브랜치
+    branches: [dev] # main 브랜치
 
 jobs:
   deploy:
@@ -38,7 +38,7 @@ jobs:
             cd /home/ubuntu/Give_me_the_ticket
 
             # main 브랜치로 이동
-            git switch main
+            git switch dev
 
             # 최신 소스 코드를 가져옴
             git pull
