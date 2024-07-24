@@ -1,8 +1,3 @@
-import { Schedule } from './schedule.entity';
-import { Image } from '../images/image.entity';
-import { ShowCategory } from './show-category.type';
-import { Bookmark } from '../users/bookmark.entity';
-import { Ticket } from './ticket.entity';
 import {
   Column,
   CreateDateColumn,
@@ -14,7 +9,12 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { ShowCategory } from 'src/commons/types/shows/show-category.type';
 import { User } from '../users/user.entity';
+import { Schedule } from './schedule.entity';
+import { Image } from '../images/image.entity';
+import { Bookmark } from '../users/bookmark.entity';
+import { Ticket } from './ticket.entity';
 
 @Entity({ name: 'shows' })
 export class Show {
