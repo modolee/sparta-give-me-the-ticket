@@ -1,4 +1,4 @@
-import { Show } from "./show.entity";
+import { Show } from "./shows/show.entity";
 
 @Entity({ name: "schedules" })
 export class Schedule {

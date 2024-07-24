@@ -10,7 +10,7 @@ import {
   DeleteDateColumn,
 } from "typeorm";
 import { User } from "./user.entity";
-import { Show } from "./show.entity";
+import { Show } from "./shows/show.entity";
 import { Trade } from "./trade.entity";
 
 @Entity({
