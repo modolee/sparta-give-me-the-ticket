@@ -1,20 +1,28 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Show } from 'src/entities/shows/show.entity';
 import { Ticket } from 'src/entities/shows/ticket.entity';
 import { Bookmark } from 'src/entities/users/bookmark.entity';
 import { User } from 'src/entities/users/user.entity';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { CreateShowDto } from './dto/create-show.dto';
-import { USER_BOOKMARK_MESSAGES } from 'src/commons/constants/users/user-bookmark-messages';
+import { USER_BOOKMARK_MESSAGES } from 'src/commons/constants/users/user-bookmark-messages.constant';
+import { SHOW_TICKET_MESSAGES } from 'src/commons/constants/shows/show-ticket-messages.constant';
+import { Schedule } from 'src/entities/shows/schedule.entity';
 
 @Injectable()
 export class ShowsService {
   constructor(
     @InjectRepository(Show) private showRepository: Repository<Show>,
     @InjectRepository(User) private userRepository: Repository<User>,
-    @InjectRepository(Ticket) private ticketRepository: Repository<Ticket>,
-    @InjectRepository(Bookmark) private bookmarkRepository: Repository<Bookmark>
+    @InjectRepository(Bookmark) private bookmarkRepository: Repository<Bookmark>,
+    @InjectRepository(Schedule) private scheduleRepository: Repository<Schedule>,
+    private dataSource: DataSource
   ) {}
 
   /*공연 생성 */
@@ -82,15 +90,75 @@ export class ShowsService {
 
     return bookmark;
   }
+  /* 티켓 예매 */
+  async createTicket(showId: number, user: User, scheduleId: number) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-  /*티켓 예매 */
-  async createTicket(showId: number) {
-    // Todo: 1. 공연이 있는지 확인할것
-    // Todo: 2. 예매할 수 있는 티켓이 있는지 확인할 것
-    // Todo: 3. 예매할 수 있는 티켓을 찾아서 예매할 것
-    // Todo: 4. 예매한 티켓을 트랜잭션으로 처리
+    try {
+      // 공연이 있는지 확인합니다.
+      const show = await queryRunner.manager.findOne(Show, {
+        where: { id: showId },
+      });
+      if (!show) {
+        throw new NotFoundException(SHOW_TICKET_MESSAGES.COMMON.TICKET.SHOW_NOT_FOUND);
+      }
 
-    return;
+      // 스케줄이 있는지 확인합니다.
+      const schedule = await queryRunner.manager.findOne(Schedule, {
+        where: { id: scheduleId, show: { id: showId } },
+      });
+      if (!schedule) {
+        throw new NotFoundException('해당 스케줄을 찾을 수 없습니다.');
+      }
+
+      if (user.point < show.price) {
+        throw new BadRequestException('포인트가 부족합니다.');
+      }
+
+      // 현재의 시간에서 2시간 전으로 시간 제한을 설정
+      const twoHoursBefore = new Date();
+      twoHoursBefore.setHours(twoHoursBefore.getHours() - 2);
+
+      // 공연 시간이 2시간 이전일 경우 티켓을 구매하기 어렵다는 메시지 전달
+      if (schedule.date < twoHoursBefore) {
+        throw new BadRequestException('해당 공연 시간 2시간 전부터는 티켓을 구매할 수 없습니다.');
+      }
+
+      // 사용자의 포인트 차감
+      user.point -= show.price;
+      await queryRunner.manager.save(User, user);
+
+      const ticket = queryRunner.manager.create(Ticket, {
+        userId: user.id,
+        showId: show.id,
+        nickname: user.nickname,
+        title: show.title,
+        runtime: show.runtime,
+        date: schedule.date,
+        location: show.location,
+        price: show.price,
+      });
+
+      await queryRunner.manager.save(Ticket, ticket);
+
+      // 좌석 차감 처리
+      schedule.remainSeat -= 1;
+
+      if (schedule.remainSeat < 0) {
+        throw new BadRequestException('예약 가능한 좌석이 없습니다.');
+      }
+
+      await queryRunner.manager.save(Schedule, schedule);
+      await queryRunner.commitTransaction();
+
+      return ticket;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      await queryRunner.release();
+      throw error;
+    }
   }
 
   /*티켓 환불 */

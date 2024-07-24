@@ -14,7 +14,7 @@ import { CreateShowDto } from './dto/create-show.dto';
 import { ShowsService } from 'src/modules/shows/shows.service';
 import { ShowCategory } from 'src/commons/types/shows/show-category.type';
 import { User } from 'src/entities/users/user.entity';
-import { USER_BOOKMARK_MESSAGES } from 'src/commons/constants/users/user-bookmark-messages';
+import { USER_BOOKMARK_MESSAGES } from 'src/commons/constants/users/user-bookmark-messages.constant';
 
 @Controller('shows')
 export class ShowsController {
@@ -92,8 +92,8 @@ export class ShowsController {
    */
   @Post(':showId/ticket')
   @HttpCode(HttpStatus.CREATED)
-  async createTicket(@Param('showId') showId: number) {
-    return this.showsService.createTicket(showId);
+  async createTicket(@Param('showId') showId: number, user: User, scheduleId: number) {
+    return this.showsService.createTicket(showId, user, scheduleId);
   }
   /**
    * 티켓 환불
