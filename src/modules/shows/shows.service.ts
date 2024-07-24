@@ -14,6 +14,7 @@ import { CreateShowDto } from './dto/create-show.dto';
 import { USER_BOOKMARK_MESSAGES } from 'src/commons/constants/users/user-bookmark-messages.constant';
 import { SHOW_TICKET_MESSAGES } from 'src/commons/constants/shows/show-ticket-messages.constant';
 import { Schedule } from 'src/entities/shows/schedule.entity';
+import { SHOW_TICKETS } from 'src/commons/constants/shows/show-tickets.constant';
 
 @Injectable()
 export class ShowsService {
@@ -102,28 +103,31 @@ export class ShowsService {
         where: { id: showId },
       });
       if (!show) {
-        throw new NotFoundException(SHOW_TICKET_MESSAGES.COMMON.TICKET.SHOW_NOT_FOUND);
+        throw new NotFoundException(SHOW_TICKET_MESSAGES.COMMON.SHOW.NOT_FOUND);
       }
 
       // 스케줄이 있는지 확인합니다.
       const schedule = await queryRunner.manager.findOne(Schedule, {
-        where: { id: scheduleId, show: { id: showId } },
+        where: { id: scheduleId },
       });
       if (!schedule) {
-        throw new NotFoundException('해당 스케줄을 찾을 수 없습니다.');
-      }
-
-      if (user.point < show.price) {
-        throw new BadRequestException('포인트가 부족합니다.');
+        throw new NotFoundException(SHOW_TICKET_MESSAGES.COMMON.SHOW.NOT_FOUND);
       }
 
       // 현재의 시간에서 2시간 전으로 시간 제한을 설정
       const twoHoursBefore = new Date();
-      twoHoursBefore.setHours(twoHoursBefore.getHours() - 2);
+      twoHoursBefore.setHours(twoHoursBefore.getHours() - SHOW_TICKETS.COMMON.SHOW.HOURS);
+
+      // string 형식인 time을 Date 객체로 변환
+      const showTime = new Date(schedule.time);
 
       // 공연 시간이 2시간 이전일 경우 티켓을 구매하기 어렵다는 메시지 전달
-      if (schedule.date < twoHoursBefore) {
-        throw new BadRequestException('해당 공연 시간 2시간 전부터는 티켓을 구매할 수 없습니다.');
+      if (showTime < twoHoursBefore) {
+        throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.TIME.EXPIRED);
+      }
+
+      if (user.point < show.price) {
+        throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.POINT.NOT_ENOUGH);
       }
 
       // 사용자의 포인트 차감
@@ -144,10 +148,10 @@ export class ShowsService {
       await queryRunner.manager.save(Ticket, ticket);
 
       // 좌석 차감 처리
-      schedule.remainSeat -= 1;
+      schedule.remainSeat -= SHOW_TICKETS.COMMON.SEAT.DEDUCTED;
 
-      if (schedule.remainSeat < 0) {
-        throw new BadRequestException('예약 가능한 좌석이 없습니다.');
+      if (schedule.remainSeat < SHOW_TICKETS.COMMON.SEAT.UNSIGNED) {
+        throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.SEAT.NOT_ENOUGH);
       }
 
       await queryRunner.manager.save(Schedule, schedule);
@@ -163,6 +167,24 @@ export class ShowsService {
 
   /*티켓 환불 */
   async refundTicket(showId: number, ticketId: number) {
-    return;
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // 환불할 티켓이 있는지 확인합니다.
+      const ticket = await queryRunner.manager.findOne(Ticket, {
+        where: { id: ticketId },
+      });
+      if (!ticket) {
+        throw new NotFoundException(SHOW_TICKET_MESSAGES.COMMON.TICKET.NOT_FOUND);
+      }
+
+      await queryRunner.commitTransaction();
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      await queryRunner.release();
+      throw error;
+    }
   }
 }
