@@ -1,5 +1,19 @@
-import { Controller, Delete, Get, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpStatus,
+  Patch,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+
 import { UsersService } from './users.service';
+import { UserUpdateDto } from './dto/user-update.dto';
+import { USER_MESSAGES } from 'src/commons/constants/users/user-message.constant';
 
 @Controller('users')
 export class UsersController {
@@ -29,10 +43,22 @@ export class UsersController {
     return await this.userService.getTradeLog();
   }
 
-  // 사용자 정보 수정
+  /**
+   * 사용자 정보 수정
+   * @param req
+   * @param userUpdateDto
+   * @returns
+   */
+  @UseGuards(AuthGuard('jwt'))
   @Patch('/me')
-  async updateUser() {
-    return await this.userService.updateUser();
+  async updateUser(@Req() req: any, @Body() userUpdateDto: UserUpdateDto) {
+    const updateUser = await this.userService.updateUser(req.user.id, userUpdateDto);
+
+    return {
+      statusCode: HttpStatus.OK,
+      message: USER_MESSAGES.USER.USERINFO.UPDATE.SUCCESS,
+      updateUser,
+    };
   }
 
   // 사용자 포인트 충전
