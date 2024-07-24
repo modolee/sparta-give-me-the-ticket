@@ -12,5 +12,11 @@ export const SHOW_TICKET_MESSAGES = {
     POINT: {
       NOT_ENOUGH: '포인트가 부족합니다.',
     },
+    SEAT: {
+      NOT_ENOUGH: '예약 가능한 좌석이 없습니다.',
+    },
+    TICKET: {
+      NOT_FOUND: '티켓을 찾을 수 없습니다.',
+    },
   },
 };
