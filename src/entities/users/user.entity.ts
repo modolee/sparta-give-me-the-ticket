@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsStrongPassword } from "class-validator";
+import { IsEmail, IsNotEmpty, IsStrongPassword } from 'class-validator';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -7,10 +7,16 @@ import {
   DeleteDateColumn,
   UpdateDateColumn,
   OneToMany,
-} from "typeorm";
-import { USER_MESSAGES } from "src/constants/user-message.constant";
+} from 'typeorm';
+import { USER_MESSAGES } from 'src/commons/constants/users/user-message.constant';
 
-@Entity("users")
+import { PointLog } from './point-log.entity';
+import { Bookmark } from './bookmark.entity';
+import { Show } from '../shows/show.entity';
+import { Ticket } from '../shows/ticket.entity';
+import { Trade } from '../trades/trade.entity';
+
+@Entity('users')
 export class User {
   @PrimaryGeneratedColumn({ unsigned: true })
   id: number;
@@ -62,6 +68,6 @@ export class User {
   tickets: Ticket[];
 
   // Relation - [users] 1 : N [trades]
-  @OneToMany(() => Trades, (trade) => trade.user, { cascade: true })
-  trades: Trades[];
+  @OneToMany(() => Trade, (trade) => trade.user, { cascade: true })
+  trades: Trade[];
 }
