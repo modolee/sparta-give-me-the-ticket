@@ -1,8 +1,20 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { CreateShowDto } from './dto/create-show.dto';
 import { ShowsService } from 'src/modules/shows/shows.service';
 import { ShowCategory } from 'src/commons/types/shows/show-category.type';
 import { User } from 'src/entities/users/user.entity';
+import { USER_BOOKMARK_MESSAGES } from 'src/commons/constants/users/user-bookmark-messages';
 
 @Controller('shows')
 export class ShowsController {
@@ -56,8 +68,10 @@ export class ShowsController {
    * @returns
    */
   @Post(':showId/bookmark')
+  @HttpCode(HttpStatus.CREATED)
   async createBookmark(@Param('showId') showId: number, user: User) {
-    return this.showsService.createBookmark(showId, user);
+    await this.showsService.createBookmark(showId, user);
+    return { message: USER_BOOKMARK_MESSAGES.COMMON.BOOKMARK.SUCCESS.COMPLETED };
   }
 
   /**
@@ -66,8 +80,10 @@ export class ShowsController {
    * @returns
    */
   @Delete(':showId/bookmark')
-  async deleteBookmark(@Param('showId') showId: number) {
-    return this.showsService.deleteBookmark(showId);
+  @HttpCode(HttpStatus.OK)
+  async deleteBookmark(@Param('showId') showId: number, @Param('bookmarkId') bookmarkId: number) {
+    await this.showsService.deleteBookmark(showId, bookmarkId);
+    return { message: USER_BOOKMARK_MESSAGES.COMMON.CANCEL_BOOKMARK.SUCCESS.COMPLETED };
   }
   /**
    * 티켓 예매
@@ -75,6 +91,7 @@ export class ShowsController {
    * @returns
    */
   @Post(':showId/ticket')
+  @HttpCode(HttpStatus.CREATED)
   async createTicket(@Param('showId') showId: number) {
     return this.showsService.createTicket(showId);
   }
@@ -85,7 +102,9 @@ export class ShowsController {
    * @returns
    */
   @Delete(':showId/ticket/:ticketId')
+  @HttpCode(HttpStatus.OK)
   async refundTicket(@Param('showId') showId: number, @Param('ticketId') ticketId: number) {
-    return this.showsService.refundTicket(showId, ticketId);
+    await this.showsService.refundTicket(showId, ticketId);
+    return;
   }
 }
