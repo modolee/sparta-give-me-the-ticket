@@ -85,6 +85,11 @@ export class ShowsService {
 
   /*티켓 예매 */
   async createTicket(showId: number) {
+    // Todo: 1. 공연이 있는지 확인할것
+    // Todo: 2. 예매할 수 있는 티켓이 있는지 확인할 것
+    // Todo: 3. 예매할 수 있는 티켓을 찾아서 예매할 것
+    // Todo: 4. 예매한 티켓을 트랜잭션으로 처리
+
     return;
   }
 

@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsStrongPassword } from "class-validator";
+import { IsEmail, IsNotEmpty, IsStrongPassword } from 'class-validator';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -7,24 +7,29 @@ import {
   DeleteDateColumn,
   UpdateDateColumn,
   OneToMany,
-} from "typeorm";
-import { USER_MESSAGES } from "src/constants/user-message.constant";
+} from 'typeorm';
 
-@Entity("users")
+import { PointLog } from './point-log.entity';
+import { Bookmark } from './bookmark.entity';
+import { Show } from '../shows/show.entity';
+import { Ticket } from '../shows/ticket.entity';
+import { Trade } from '../trades/trade.entity';
+
+@Entity('users')
 export class User {
   @PrimaryGeneratedColumn({ unsigned: true })
   id: number;
 
-  @IsNotEmpty({ message: USER_MESSAGES.USER.SIGNUP.EMAIL.EMPTY })
+  @IsNotEmpty({ message: '이메일을 입력해 주세요.' })
   @IsEmail()
   @Column({ unique: true })
   email: string;
 
-  @IsNotEmpty({ message: USER_MESSAGES.USER.SIGNUP.NICKNAME.EMPTY })
+  @IsNotEmpty({ message: '닉네임을 입력해 주세요.' })
   @Column({ unique: true })
   nickname: string;
 
-  @IsNotEmpty({ message: USER_MESSAGES.USER.SIGNUP.PASSWORD.EMPTY })
+  @IsNotEmpty({ message: '비밀번호를 입력해 주세요.' })
   @IsStrongPassword({ minLength: 8, minSymbols: 1 }, {})
   @Column({ select: false })
   password: string;
@@ -62,6 +67,6 @@ export class User {
   tickets: Ticket[];
 
   // Relation - [users] 1 : N [trades]
-  @OneToMany(() => Trades, (trade) => trade.user, { cascade: true })
-  trades: Trades[];
+  @OneToMany(() => Trade, (trade) => trade.user, { cascade: true })
+  trades: Trade[];
 }
