@@ -11,8 +11,8 @@ import {
 } from '@nestjs/common';
 import { TradesService } from './trades.service';
 import { update } from 'lodash';
-import { CreateTradeDto } from './dto/create.trade.dto';
-import { UpdateTradeDto } from './dto/update.trade.dto';
+import { CreateTradeDto } from './dto/create-trade.dto';
+import { UpdateTradeDto } from './dto/update-trade.dto';
 
 @Controller('trades')
 export class TradesController {
@@ -25,7 +25,7 @@ export class TradesController {
 
   @Get()
   async getTradeDetail(@Param('tradeId', ParseIntPipe) tradeId) {
-    return await this.tradesService.getTradeDetail(tradeId)
+    return await this.tradesService.getTradeDetail(tradeId);
   }
 
   @Post()
