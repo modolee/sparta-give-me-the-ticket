@@ -1,4 +1,4 @@
-import { IsArray, IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
 import { SHOW_MESSAGES } from 'src/commons/constants/shows/show-messages.constant';
 import { ShowCategory } from 'src/commons/types/shows/show-category.type';
 
@@ -27,6 +27,6 @@ export class CreateShowDto {
   price: number;
 
   @IsNumber()
-  @IsNotEmpty({ message: SHOW_MESSAGES.COMMON.TOTAL_SEATS.REQUIRED })
+  @IsNotEmpty({ message: SHOW_MESSAGES.COMMON.TOTAL_SEAT.REQUIRED })
   totalSeat: number;
 }
