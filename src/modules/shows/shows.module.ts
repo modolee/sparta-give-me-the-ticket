@@ -6,8 +6,9 @@ import { Show } from 'src/entities/shows/show.entity';
 import { User } from 'src/entities/users/user.entity';
 import { Ticket } from 'src/entities/shows/ticket.entity';
 import { Bookmark } from 'src/entities/users/bookmark.entity';
+import { Schedule } from 'src/entities/shows/schedule.entity';
 @Module({
-  imports: [TypeOrmModule.forFeature([Show, User, Ticket, Bookmark])],
+  imports: [TypeOrmModule.forFeature([Show, User, Ticket, Bookmark, Schedule])],
   controllers: [ShowsController],
   providers: [ShowsService],
   exports: [TypeOrmModule],

@@ -22,30 +22,30 @@ export class Ticket {
   id: number;
 
   // 유저 엔티티 외래키 설정
-  @Column({ name: 'user_id', type: 'int', nullable: false })
+  @Column({ name: 'user_id', type: 'int', unsigned: true })
   userId: number;
 
   // 공연 엔티티 외래키 설정
-  @Column({ name: 'show_id', type: 'int', nullable: false })
+  @Column({ name: 'show_id', type: 'int', unsigned: true })
   showId: number;
 
-  @Column({ type: 'varchar', nullable: false })
+  @Column({ type: 'varchar' })
   nickname: string;
 
-  @Column({ type: 'varchar', nullable: false })
+  @Column({ type: 'varchar' })
   title: string;
 
-  @Column({ type: 'int', nullable: false })
+  @Column({ type: 'int' })
   runtime: number;
 
-  @Column({ type: 'date', nullable: false })
+  @Column({ type: 'date' })
   date: Date;
 
-  @Column({ type: 'varchar', nullable: false })
+  @Column({ type: 'varchar' })
   location: string;
 
   // 자유석 기준 가격
-  @Column({ type: 'int', nullable: false })
+  @Column({ type: 'int' })
   price: number;
 
   @Column({

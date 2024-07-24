@@ -6,7 +6,6 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { SignUpDto } from './dto/sign-up.dto';
-import { SignInDto } from './dto/sign-in.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/entities/users/user.entity';
 import { Repository } from 'typeorm';
@@ -87,7 +86,7 @@ export class AuthService {
     );
 
     // 리프레시 토큰 저장
-    // await this.usersRepository.update({ id: user.id }, { refreshToken });
+    await this.usersRepository.update({ id: user.id }, { refreshToken });
 
     return { accessToken, refreshToken };
   }
