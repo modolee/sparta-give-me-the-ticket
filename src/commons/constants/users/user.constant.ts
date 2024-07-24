@@ -4,5 +4,6 @@ export const USER_CONSTANT = {
       MIN_LENGTH: 8,
       MIN_SYMBOLS: 1,
     },
+    HASH_SALT_ROUNDS: 10,
   },
 };
