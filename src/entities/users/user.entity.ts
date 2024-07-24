@@ -8,7 +8,6 @@ import {
   UpdateDateColumn,
   OneToMany,
 } from 'typeorm';
-import { USER_MESSAGES } from 'src/commons/constants/users/user-message.constant';
 
 import { PointLog } from './point-log.entity';
 import { Bookmark } from './bookmark.entity';
@@ -21,16 +20,16 @@ export class User {
   @PrimaryGeneratedColumn({ unsigned: true })
   id: number;
 
-  @IsNotEmpty({ message: USER_MESSAGES.USER.SIGNUP.EMAIL.EMPTY })
+  @IsNotEmpty({ message: '이메일을 입력해 주세요.' })
   @IsEmail()
   @Column({ unique: true })
   email: string;
 
-  @IsNotEmpty({ message: USER_MESSAGES.USER.SIGNUP.NICKNAME.EMPTY })
+  @IsNotEmpty({ message: '닉네임을 입력해 주세요.' })
   @Column({ unique: true })
   nickname: string;
 
-  @IsNotEmpty({ message: USER_MESSAGES.USER.SIGNUP.PASSWORD.EMPTY })
+  @IsNotEmpty({ message: '비밀번호를 입력해 주세요.' })
   @IsStrongPassword({ minLength: 8, minSymbols: 1 }, {})
   @Column({ select: false })
   password: string;
