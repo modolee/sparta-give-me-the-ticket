@@ -4,6 +4,6 @@ import { TradesController } from './trades.controller';
 
 @Module({
   providers: [TradesService],
-  controllers: [TradesController]
+  controllers: [TradesController],
 })
 export class TradesModule {}
