@@ -34,6 +34,9 @@ export class User {
   @Column({ select: false })
   password: string;
 
+  @Column()
+  refreshToken: string;
+
   @IsNotEmpty()
   @Column({ default: 1000000 })
   point: number;
