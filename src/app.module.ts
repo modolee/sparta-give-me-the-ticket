@@ -27,9 +27,4 @@ import { ImagesModule } from './images/images.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {
-  configure(consumer: MiddlewareConsumer) {
-    // 전역 프리픽스 설정
-    consumer.apply().forRoutes('/');
-  }
-}
+export class AppModule {}
