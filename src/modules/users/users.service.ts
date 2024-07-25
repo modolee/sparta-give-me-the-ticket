@@ -44,7 +44,7 @@ export class UsersService {
 
     if (!user) {
       throw new NotFoundException({
-        message: USER_MESSAGES.USER.USERINFO.UPDATE.FAILURE.USER_NOT_FOUND,
+        message: USER_MESSAGES.USER.COMMON.NOT_FOUND,
       });
     }
 
@@ -118,7 +118,7 @@ export class UsersService {
     const user = await this.userRepository.findOneBy({ id });
 
     if (!user) {
-      throw new NotFoundException(USER_MESSAGES.USER.USERINFO.UPDATE.FAILURE.USER_NOT_FOUND);
+      throw new NotFoundException(USER_MESSAGES.USER.COMMON.NOT_FOUND);
     }
 
     const deleteUser = await this.userRepository.softDelete({ id });

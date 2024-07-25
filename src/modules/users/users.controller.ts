@@ -79,7 +79,7 @@ export class UsersController {
 
     return {
       statusCode: HttpStatus.OK,
-      message: '회원 탈퇴에 성공했습니다.',
+      message: USER_MESSAGES.USER.COMMON.IS_DELETED,
       deleteUser,
     };
   }
