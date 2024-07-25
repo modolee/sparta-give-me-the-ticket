@@ -3,6 +3,7 @@ import { CreateTradeDto } from './dto/create-trade.dto';
 import { UpdateTradeDto } from './dto/update-trade.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { NotFoundException } from '@nestjs/common';
 
 //entities
 import { Trade } from 'src/entities/trades/trade.entity';
@@ -66,6 +67,9 @@ export class TradesService {
         return trade;
       })
     );
+    if (!trade_list[0]) {
+      return { message: '중고거래 목록이 존재하지 않습니다' };
+    }
 
     return trade_list;
   }
@@ -102,8 +106,39 @@ export class TradesService {
   }
 
   //sellerId는 인증을 통해 받게 될 예정
-  async createTrade(createTradeDto: CreateTradeDto) {}
-  async updateTrade(updateTradeDto: UpdateTradeDto) {}
-  async deleteTrade(tradeId: number) {}
-  async createTicket(tradeId: number) {}
+  async createTrade(createTradeDto: CreateTradeDto) {
+    const { ticketId, price } = createTradeDto;
+
+    const ticket = await this.TicketRepository.findOne({ where: { id: ticketId } });
+    if (!ticket) throw new NotFoundException('해당 티켓이 존재하지 않습니다');
+
+    const showId = ticket.showId;
+
+    const show = await this.ShowRepository.findOne({ where: { id: showId } });
+    if (!show) throw new NotFoundException('해당 공연이 존재하지 않습니다');
+
+    const schedule = await this.ScheduleRepository.findOne({ where: { showId: showId } });
+    if (!schedule) throw new NotFoundException('해당 일정이 존재하지 않습니다');
+
+    console.log(schedule.date, schedule.date);
+  }
+
+  async updateTrade(updateTradeDto: UpdateTradeDto) {
+    const { price, tradeId } = updateTradeDto;
+
+    const trade = await this.TradeRepository.findOne({ where: { id: tradeId } });
+    if (!trade) throw new NotFoundException(`해당 거래가 존재하지 않습니다`);
+
+    return await this.TradeRepository.update(tradeId, { price });
+  }
+
+  async deleteTrade(tradeId: number, id) {
+    const trade = await this.TradeRepository.findOne({ where: { id: tradeId } });
+    if (!trade) throw new NotFoundException(`해당 거래가 존재하지 않습니다`);
+    return await this.TradeRepository.delete(tradeId);
+  }
+  async createTicket(tradeId: number) {
+    const trade = await this.TradeRepository.findOne({ where: { id: tradeId } });
+    if (!trade) throw new NotFoundException(`해당 거래가 존재하지 않습니다`);
+  }
 }
