@@ -20,11 +20,11 @@ export class Trade {
   id: number;
 
   // 유저 엔티티 외래키 설정
-  @Column({ name: 'seller_id', type: 'int', nullable: false })
+  @Column({ name: 'seller_id', type: 'int', nullable: false, unsigned: true })
   sellerId: number;
 
   // 티켓 엔티티 외래키 설정
-  @Column({ name: 'ticket_id', type: 'int', nullable: false })
+  @Column({ name: 'ticket_id', type: 'int', nullable: false, unsigned: true })
   ticketId: number;
 
   @Column({ type: 'int', nullable: false })
