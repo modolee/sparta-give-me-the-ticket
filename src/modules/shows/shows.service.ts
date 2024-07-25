@@ -15,6 +15,7 @@ import { USER_BOOKMARK_MESSAGES } from 'src/commons/constants/users/user-bookmar
 import { SHOW_TICKET_MESSAGES } from 'src/commons/constants/shows/show-ticket-messages.constant';
 import { Schedule } from 'src/entities/shows/schedule.entity';
 import { SHOW_TICKETS } from 'src/commons/constants/shows/show-tickets.constant';
+import { TicketStatus } from 'src/commons/types/shows/ticket.type';
 
 @Injectable()
 export class ShowsService {
@@ -108,7 +109,7 @@ export class ShowsService {
 
       // 스케줄이 있는지 확인합니다.
       const schedule = await queryRunner.manager.findOne(Schedule, {
-        where: { id: scheduleId },
+        where: { id: scheduleId, showId },
       });
       if (!schedule) {
         throw new NotFoundException(SHOW_TICKET_MESSAGES.COMMON.SHOW.NOT_FOUND);
@@ -166,7 +167,7 @@ export class ShowsService {
   }
 
   /*티켓 환불 */
-  async refundTicket(showId: number, ticketId: number, schedule: Schedule) {
+  async refundTicket(showId: number, ticketId: number, schedule: Schedule, user: User) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -174,7 +175,10 @@ export class ShowsService {
     try {
       // 환불할 티켓이 있는지 확인합니다.
       const ticket = await queryRunner.manager.findOne(Ticket, {
-        where: { id: ticketId },
+        where: {
+          id: ticketId,
+          showId,
+        },
       });
       if (!ticket) {
         throw new NotFoundException(SHOW_TICKET_MESSAGES.COMMON.TICKET.NOT_FOUND);
@@ -187,10 +191,53 @@ export class ShowsService {
       // string 형식인 time을 Date 객체로 변환
       const showTime = new Date(schedule.time);
 
-      // 공연 시간이 1시간 이전일 경우 티켓을 구매하기 어렵다는 메시지 전달
+      // 공연 시간이 1시간 이전일 경우 환불하기 어렵다는 메시지 전달
       if (showTime < oneHoursBefore) {
         throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.TIME.EXPIRED);
       }
+
+      // 현재 시간 가져오기
+      const nowTime = new Date();
+
+      // 티켓 예매 시점 확인 (티켓의 생성 시점)
+      const bookingTime = new Date(ticket.createdAt); // Assuming there's a `createdAt` field
+
+      // 공연 시작 3일 전 시간 계산
+      const threeDaysBeforeShow = new Date(showTime.getTime() - 3 * 24 * 60 * 60 * 1000); // 3일을 밀리초로 변환
+
+      // 환불 정책에 따른 비율 계산
+      let refundPoint = 0;
+
+      // 예매 시점이 공연 시작 3일 전까지인지 확인
+      if (bookingTime > threeDaysBeforeShow) {
+        throw new BadRequestException(' 공연 환불은 최소 3일 전까지만 가능합니다.');
+      }
+
+      // 환불 가능 여부와 비율 결정
+      const timeDiff = showTime.getTime() - nowTime.getTime();
+      const hoursUntilShow = Math.ceil(timeDiff / (1000 * 60 * 60));
+
+      if (hoursUntilShow <= 1) {
+        refundPoint = ticket.price * 0.1; // 공연 시작 1시간 전까지 10% 환불
+      } else if (hoursUntilShow <= 72) {
+        refundPoint = ticket.price * 0.5; // 공연 시작 3일 전까지 50% 환불
+      } else if (hoursUntilShow <= 240) {
+        refundPoint = ticket.price; // 공연 시작 10일 전까지 전액 환불
+      } else {
+        refundPoint = ticket.price; // 공연 예매 후 24시간 이내 전액 환불
+      }
+
+      // 티켓 상태를 환불로 업데이트를 합니다.
+      ticket.status = TicketStatus.REFUNDED;
+      await queryRunner.manager.save(Ticket, ticket);
+
+      user.point += refundPoint;
+      await queryRunner.manager.save(User, user);
+
+      // 좌석 증가 처리
+      schedule.remainSeat += 1;
+
+      await queryRunner.manager.save(Schedule, schedule);
 
       await queryRunner.commitTransaction();
     } catch (error) {
