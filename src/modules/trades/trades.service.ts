@@ -45,6 +45,7 @@ export class TradesService {
       select: { id: true, showId: true, price: true },
     });
 
+    //중고 거래 목록 조회
     //trade_list에 공연에서 가져온 주소값을 병합
     trade_list = await Promise.all(
       trade_list.map(async (trade) => {
@@ -73,6 +74,8 @@ export class TradesService {
 
     return trade_list;
   }
+
+  //중고 거래 상세 보기
   async getTradeDetail(tradeId: number) {
     let trade_list = await this.TradeRepository.find({
       select: { id: true, showId: true, price: true, sellerId: true },
@@ -105,8 +108,9 @@ export class TradesService {
     return trade_list;
   }
 
-  //sellerId는 인증을 통해 받게 될 예정
-  async createTrade(createTradeDto: CreateTradeDto) {
+  //중고거래 생성 함수
+  //sellerId는 인증을 통해 받게 될 예정 //sellerId,ticket_id,showId,price 까지 구함, closedAt만 구하면 됨
+  async createTrade(createTradeDto: CreateTradeDto, sellerId) {
     const { ticketId, price } = createTradeDto;
 
     const ticket = await this.TicketRepository.findOne({ where: { id: ticketId } });
@@ -123,6 +127,7 @@ export class TradesService {
     console.log(schedule.date, schedule.date);
   }
 
+  //중고 거래 수정 메서드
   async updateTrade(updateTradeDto: UpdateTradeDto) {
     const { price, tradeId } = updateTradeDto;
 
@@ -132,11 +137,13 @@ export class TradesService {
     return await this.TradeRepository.update(tradeId, { price });
   }
 
+  //중고 거래 삭제 메서드
   async deleteTrade(tradeId: number, id) {
     const trade = await this.TradeRepository.findOne({ where: { id: tradeId } });
     if (!trade) throw new NotFoundException(`해당 거래가 존재하지 않습니다`);
     return await this.TradeRepository.delete(tradeId);
   }
+  //티켓 발급 메서드
   async createTicket(tradeId: number) {
     const trade = await this.TradeRepository.findOne({ where: { id: tradeId } });
     if (!trade) throw new NotFoundException(`해당 거래가 존재하지 않습니다`);
