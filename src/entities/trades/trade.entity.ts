@@ -13,6 +13,7 @@ import {
 import { Ticket } from '../shows/ticket.entity';
 import { User } from '../users/user.entity';
 import { TradeLog } from './trade-log.entity';
+import { FLAG } from 'src/commons/types/flag/flag-type';
 
 @Entity('trades')
 export class Trade {
@@ -35,6 +36,9 @@ export class Trade {
 
   @Column({ nullable: false })
   closedAt: Date;
+
+  @Column({ type: 'enum', enum: FLAG, nullable: false, default: FLAG.ACTIVATION })
+  flag: FLAG;
 
   @CreateDateColumn()
   createdAt: Date;
