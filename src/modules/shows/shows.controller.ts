@@ -9,6 +9,7 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { CreateShowDto } from './dto/create-show.dto';
@@ -33,9 +34,10 @@ export class ShowsController {
    * @returns
    * */
   @Post()
-  @UseGuards(AuthGuard('local'))
-  async createShow(@Body() createShowDto: CreateShowDto, userId: number) {
-    return await this.showsService.createShow(createShowDto, userId);
+  @UseGuards(AuthGuard('jwt'))
+  async createShow(@Body() createShowDto: CreateShowDto, @Req() req: { user: User }) {
+    const user = req.user;
+    return await this.showsService.createShow(createShowDto, user.id);
   }
 
   /**

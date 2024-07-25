@@ -1,8 +1,9 @@
-import { IsNotEmpty, IsNumber, IsString, ValidateNested } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsNumber, IsString, MinLength, ValidateNested } from 'class-validator';
 import { SHOW_MESSAGES } from 'src/commons/constants/shows/show-messages.constant';
 import { ShowCategory } from 'src/commons/types/shows/show-category.type';
 import { CreateScheduleDto } from './create-schedule.dto';
 import { Type } from 'class-transformer';
+import { MIN_SHOW_CONTENT_LENGTH } from 'src/commons/constants/shows/shows.constant';
 
 export class CreateShowDto {
   /**
@@ -19,12 +20,14 @@ export class CreateShowDto {
    */
   @IsString()
   @IsNotEmpty({ message: SHOW_MESSAGES.COMMON.CONTENT.REQUIRED })
+  @MinLength(MIN_SHOW_CONTENT_LENGTH, { message: SHOW_MESSAGES.COMMON.CONTENT.MIN_LENGTH })
   content: string;
 
   /**
    * 공연 카테고리
    * @example "Musical"
    */
+  @IsEnum(ShowCategory, { message: SHOW_MESSAGES.COMMON.CATEGORY.INVALID })
   @IsNotEmpty({ message: SHOW_MESSAGES.COMMON.CATEGORY.REQUIRED })
   category: ShowCategory;
 
