@@ -12,7 +12,8 @@ import {
 import { User } from '../users/user.entity';
 import { Show } from './show.entity';
 import { Trade } from '../trades/trade.entity';
-import { TicketStatus } from 'src/commons/types/shows/ticket.type';
+import { TicketStatus } from '../../commons/types/shows/ticket.type';
+import { IsMilitaryTime } from 'class-validator';
 
 @Entity({
   name: 'tickets',
@@ -34,6 +35,10 @@ export class Ticket {
 
   @Column({ type: 'varchar' })
   title: string;
+
+  @Column({ type: 'time' })
+  @IsMilitaryTime()
+  time: string;
 
   @Column({ type: 'int' })
   runtime: number;

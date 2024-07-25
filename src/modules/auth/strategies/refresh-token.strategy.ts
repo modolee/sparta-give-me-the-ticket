@@ -15,16 +15,23 @@ export class RefreshTokenStrategy extends PassportStrategy(Strategy, 'refreshTok
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       secretOrKey: configService.get('REFRESH_SECRET_KEY'),
+      passReqToCallback: true,
     });
   }
 
-  async validate(payload: any) {
+  async validate(req: any, payload: any) {
     const user = await this.usersRepository.findOne({
       where: { id: payload.id },
     });
 
     if (!user) {
       throw new NotFoundException('일치하는 사용자가 없습니다.');
+    }
+
+    const [type, token] = req.headers.authorization.split(' ');
+
+    if (token !== user.refreshToken) {
+      throw new UnauthorizedException('이미 만료된 토큰입니다.');
     }
 
     return user;

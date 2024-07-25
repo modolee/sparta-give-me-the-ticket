@@ -1,0 +1,4 @@
+{
+  "seeds": ["src/seeders/**/*{.ts,.js}"],
+  "factories": ["src/factories/**/*{.ts,.js}"]
+}
