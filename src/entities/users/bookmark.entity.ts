@@ -35,6 +35,6 @@ export class Bookmark {
 
   // Relation - [bookmarks] N : 1 [users]
   @ManyToOne(() => User, (user) => user.bookmarks, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'user_id' })
+  @JoinColumn({ name: 'user_id', referencedColumnName: 'id' })
   user: User;
 }

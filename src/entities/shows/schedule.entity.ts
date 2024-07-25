@@ -10,6 +10,8 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { Show } from './show.entity';
+import { Factory } from 'nestjs-seeder';
+import { randomInt } from 'crypto';
 
 @Entity({ name: 'schedules' })
 export class Schedule {
@@ -17,16 +19,29 @@ export class Schedule {
   id: number;
 
   //공연 엔티티 외래키 설정
+  @Factory(() => randomInt(6, 8))
   @Column({ type: 'int', name: 'show_id', unsigned: true })
   showId: number;
 
+  @Factory((faker) => {
+    const today = new Date();
+    const futureDate = new Date();
+    futureDate.setDate(today.getDate() + randomInt(50, 100));
+    return futureDate;
+  })
   @Column({ type: 'date' })
   date: Date;
 
+  @Factory((faker) => {
+    const hour = randomInt(0, 23).toString().padStart(2, '0');
+    const minute = randomInt(0, 59).toString().padStart(2, '0');
+    return `${hour}:${minute}`;
+  })
   @Column({ type: 'time' })
   @IsMilitaryTime()
   time: string;
 
+  @Factory(() => randomInt(50, 1000))
   @Column({ type: 'int' })
   remainSeat: number;
 

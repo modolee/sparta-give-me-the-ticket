@@ -9,6 +9,7 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { CreateShowDto } from './dto/create-show.dto';
@@ -19,6 +20,7 @@ import { USER_BOOKMARK_MESSAGES } from 'src/commons/constants/users/user-bookmar
 import { AuthGuard } from '@nestjs/passport';
 import { Schedule } from 'src/entities/shows/schedule.entity';
 import { Show } from 'src/entities/shows/show.entity';
+import { DeleteBookmarkDto } from './dto/delete-bookmark.dto';
 
 @Controller('shows')
 export class ShowsController {
@@ -74,9 +76,13 @@ export class ShowsController {
   @Post(':showId/bookmark')
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(AuthGuard('jwt'))
-  async createBookmark(@Param('showId') showId: number, user: User) {
+  async createBookmark(@Param('showId') showId: number, @Req() req: any) {
+    const user: User = req.user;
     await this.showsService.createBookmark(showId, user);
-    return { message: USER_BOOKMARK_MESSAGES.COMMON.BOOKMARK.SUCCESS.COMPLETED };
+    return {
+      status: HttpStatus.CREATED,
+      message: USER_BOOKMARK_MESSAGES.COMMON.BOOKMARK.SUCCESS.COMPLETED,
+    };
   }
 
   /**
@@ -84,11 +90,11 @@ export class ShowsController {
    * @param showId
    * @returns
    */
-  @Delete(':showId/bookmark')
+  @Delete(':showId/bookmark/:bookmarkId')
   @HttpCode(HttpStatus.OK)
   @UseGuards(AuthGuard('jwt'))
-  async deleteBookmark(@Param('showId') showId: number, @Param('bookmarkId') bookmarkId: number) {
-    await this.showsService.deleteBookmark(showId, bookmarkId);
+  async deleteBookmark(@Param() deleteBookmarkDto: DeleteBookmarkDto) {
+    await this.showsService.deleteBookmark(deleteBookmarkDto);
     return {
       status: HttpStatus.OK,
       message: USER_BOOKMARK_MESSAGES.COMMON.CANCEL_BOOKMARK.SUCCESS.COMPLETED,
@@ -102,7 +108,8 @@ export class ShowsController {
   @Post(':showId/ticket')
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(AuthGuard('jwt'))
-  async createTicket(@Param('showId') showId: number, scheduleId: number, user: User) {
+  async createTicket(@Param('showId') showId: number, scheduleId: number, @Req() req: any) {
+    const user: User = req.user;
     return this.showsService.createTicket(showId, scheduleId, user);
   }
   /**
@@ -118,8 +125,7 @@ export class ShowsController {
     @Param('showId') showId: number,
     @Param('ticketId') ticketId: number,
     schedule: Schedule,
-    user: User,
-    show: Show
+    user: User
   ) {
     await this.showsService.refundTicket(showId, ticketId, schedule, user);
     return { status: HttpStatus.OK };
