@@ -4,6 +4,7 @@ import { SignUpDto } from './dto/sign-up.dto';
 import { SignInDto } from './dto/sign-in.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { RefreshTokenGuard } from './utils/refresh-token.guard';
 
 @ApiTags('인증')
 @Controller('auth')
@@ -37,7 +38,7 @@ export class AuthController {
    * @returns
    */
   @ApiBearerAuth()
-  @UseGuards(AuthGuard('refreshToken'))
+  @UseGuards(RefreshTokenGuard)
   @Post('/sign-out')
   async signOut(@Req() req: any) {
     return await this.authService.signOut(req.user.id);

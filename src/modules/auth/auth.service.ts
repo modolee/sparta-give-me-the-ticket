@@ -62,6 +62,16 @@ export class AuthService {
   async validateUser({ email, password }) {
     const user = await this.usersRepository.findOne({
       where: { email },
+      select: {
+        id: true,
+        email: true,
+        nickname: true,
+        password: true,
+        refreshToken: true,
+        point: true,
+        profileImg: true,
+        deletedAt: true,
+      },
     });
 
     if (!user || user.deletedAt) {
@@ -97,7 +107,9 @@ export class AuthService {
     // 이미 로그아웃 상태인지 확인
     const user = await this.usersRepository.findOne({ where: { id: userId } });
 
-    if (_.isNil(user.refreshToken)) {
+    console.log(user.refreshToken);
+
+    if (user.refreshToken === '') {
       throw new BadRequestException('이미 로그아웃 되었습니다.');
     }
 
