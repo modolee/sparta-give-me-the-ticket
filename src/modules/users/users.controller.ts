@@ -62,7 +62,12 @@ export class UsersController {
     };
   }
 
-  // 사용자 포인트 충전
+  /**
+   * 사용자 포인트 충전
+   * @param req
+   * @param chargePointDto
+   * @returns
+   */
   @UseGuards(AuthGuard('jwt'))
   @Post('/me/point')
   async chargePoint(@Req() req: any, @Body() chargePointDto: ChargePointDto) {
