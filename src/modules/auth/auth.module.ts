@@ -9,6 +9,7 @@ import { LocalStrategy } from './strategies/local.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/entities/users/user.entity';
+import { RefreshTokenStrategy } from './strategies/refresh-token.strategy';
 
 @Module({
   imports: [
@@ -28,6 +29,6 @@ import { User } from 'src/entities/users/user.entity';
     UsersModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, LocalStrategy, JwtStrategy],
+  providers: [AuthService, LocalStrategy, JwtStrategy, RefreshTokenStrategy],
 })
 export class AuthModule {}
