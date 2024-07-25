@@ -52,7 +52,10 @@ export class UsersService {
     const { nickname, profileImg, currentPassword } = userUpdateDto;
 
     // 사용자 조회
-    const user = await this.userRepository.findOneBy({ id });
+    const user = await this.userRepository.findOne({
+      where: { id },
+      select: ['id', 'nickname', 'password', 'profileImg'],
+    });
 
     if (!user) {
       throw new NotFoundException(USER_MESSAGES.USER.COMMON.NOT_FOUND);
