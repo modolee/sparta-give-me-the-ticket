@@ -18,6 +18,7 @@ import { User } from 'src/entities/users/user.entity';
 import { USER_BOOKMARK_MESSAGES } from 'src/commons/constants/users/user-bookmark-messages.constant';
 import { AuthGuard } from '@nestjs/passport';
 import { Schedule } from 'src/entities/shows/schedule.entity';
+import { Show } from 'src/entities/shows/show.entity';
 
 @Controller('shows')
 export class ShowsController {
@@ -116,9 +117,11 @@ export class ShowsController {
   async refundTicket(
     @Param('showId') showId: number,
     @Param('ticketId') ticketId: number,
-    schedule: Schedule
+    schedule: Schedule,
+    user: User,
+    show: Show
   ) {
-    await this.showsService.refundTicket(showId, ticketId, schedule);
+    await this.showsService.refundTicket(showId, ticketId, schedule, user);
     return { status: HttpStatus.OK };
   }
 }

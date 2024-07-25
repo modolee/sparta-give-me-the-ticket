@@ -15,6 +15,7 @@ import { USER_BOOKMARK_MESSAGES } from 'src/commons/constants/users/user-bookmar
 import { SHOW_TICKET_MESSAGES } from 'src/commons/constants/shows/show-ticket-messages.constant';
 import { Schedule } from 'src/entities/shows/schedule.entity';
 import { SHOW_TICKETS } from 'src/commons/constants/shows/show-tickets.constant';
+import { TicketStatus } from 'src/commons/types/shows/ticket.type';
 
 @Injectable()
 export class ShowsService {
@@ -166,7 +167,7 @@ export class ShowsService {
   }
 
   /*티켓 환불 */
-  async refundTicket(showId: number, ticketId: number, schedule: Schedule) {
+  async refundTicket(showId: number, ticketId: number, schedule: Schedule, user: User) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -174,7 +175,10 @@ export class ShowsService {
     try {
       // 환불할 티켓이 있는지 확인합니다.
       const ticket = await queryRunner.manager.findOne(Ticket, {
-        where: { id: ticketId },
+        where: {
+          id: ticketId,
+          showId: showId,
+        },
       });
       if (!ticket) {
         throw new NotFoundException(SHOW_TICKET_MESSAGES.COMMON.TICKET.NOT_FOUND);
@@ -187,10 +191,24 @@ export class ShowsService {
       // string 형식인 time을 Date 객체로 변환
       const showTime = new Date(schedule.time);
 
-      // 공연 시간이 1시간 이전일 경우 티켓을 구매하기 어렵다는 메시지 전달
+      // 공연 시간이 1시간 이전일 경우 환불하기 어렵다는 메시지 전달
       if (showTime < oneHoursBefore) {
         throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.TIME.EXPIRED);
       }
+
+      // 티켓 상태를 환불로 업데이트 및 소프트 딜리트를 설정합니다.
+      ticket.status = TicketStatus.REFUNDED;
+      ticket.deletedAt = new Date();
+      await queryRunner.manager.save(Ticket, ticket);
+
+      // 사용자의 포인트 환불
+      user.point += ticket.price;
+      await queryRunner.manager.save(User, user);
+
+      // 좌석 증가 처리
+      schedule.remainSeat += 1;
+
+      await queryRunner.manager.save(Schedule, schedule);
 
       await queryRunner.commitTransaction();
     } catch (error) {
