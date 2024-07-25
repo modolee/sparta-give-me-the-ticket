@@ -32,8 +32,9 @@ export class ShowsController {
    * @returns
    * */
   @Post()
-  async createShow(@Body() createShowDto: CreateShowDto) {
-    return await this.showsService.createShow(createShowDto);
+  //@UseGuards(AuthGuard('jwt'))
+  async createShow(@Body() createShowDto: CreateShowDto, userId: number) {
+    return await this.showsService.createShow(createShowDto, userId);
   }
 
   /**

@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  HttpStatus,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -17,6 +18,8 @@ import { Schedule } from 'src/entities/shows/schedule.entity';
 import { SHOW_TICKETS } from 'src/commons/constants/shows/show-tickets.constant';
 import { TicketStatus } from 'src/commons/types/shows/ticket.type';
 import { UpdateShowDto } from './dto/update-show.dto';
+import { SHOW_MESSAGES } from 'src/commons/constants/shows/show-messages.constant';
+import { USER_MESSAGES } from 'src/commons/constants/users/user-message.constant';
 
 @Injectable()
 export class ShowsService {
@@ -29,8 +32,59 @@ export class ShowsService {
   ) {}
 
   /*공연 생성 */
-  async createShow(createShowDto: CreateShowDto) {
-    return;
+  async createShow(createShowDto: CreateShowDto, userId: number) {
+    const { schedules, ...restOfShow } = createShowDto;
+
+    //공연 명 기준으로 이미 있는 공연인지 확인
+    const existedShow = await this.showRepository.findOneBy({
+      title: createShowDto.title,
+    });
+
+    if (existedShow) {
+      throw new ConflictException(SHOW_MESSAGES.COMMON.TITLE.EXISTED);
+    }
+
+    //사용자 정보 가져오기
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+
+    if (!user) {
+      throw new NotFoundException(USER_MESSAGES.USER.USERINFO.UPDATE.FAILURE.USER_NOT_FOUND);
+    }
+
+    //공연 생성
+    const show = await this.showRepository.create({
+      ...restOfShow,
+      userId: user.id,
+      schedules: schedules.map((schedule) => ({
+        ...schedule,
+      })),
+    });
+
+    //생성한 공연 DB에 저장
+    await this.showRepository.save(show);
+
+    return {
+      status: HttpStatus.CREATED,
+      message: SHOW_MESSAGES.CREATE.SUCCEED,
+      data: {
+        id: show.id,
+        userId: show.userId,
+        title: show.title,
+        content: show.content,
+        category: show.category,
+        runtime: show.runtime,
+        location: show.location,
+        price: show.price,
+        totalSeat: show.totalSeat,
+        schedules: show.schedules.map(({ date, time }) => ({
+          date,
+          time,
+        })),
+        createdAt: show.createdAt,
+        updatedAt: show.updatedAt,
+        deletedAt: show.deletedAt,
+      },
+    };
   }
 
   /*공연 목록 조회 */

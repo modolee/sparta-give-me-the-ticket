@@ -6,7 +6,7 @@ import { Schedule } from 'src/entities/shows/schedule.entity';
 export class CreateScheduleDto extends PickType(Schedule, ['date', 'time']) {
   /**
    * 공연 날짜
-   * @example "2024.07.25"
+   * @example "2024-07-25"
    */
   @IsDateString()
   @IsNotEmpty({ message: SHOW_MESSAGES.COMMON.DATE.REQUIRED })
