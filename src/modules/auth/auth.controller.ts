@@ -23,12 +23,12 @@ export class AuthController {
 
   /**
    * 로그인
-   * @param SignInDto
+   * @param signInDto
    * @returns
    */
   @UseGuards(AuthGuard('local'))
   @Post('/sign-in')
-  async signIn(@Req() req: any) {
+  async signIn(@Req() req: any, @Body() signInDto: SignInDto) {
     return await this.authService.signIn(req.user);
   }
 
