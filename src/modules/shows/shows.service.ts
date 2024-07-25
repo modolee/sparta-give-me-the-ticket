@@ -60,9 +60,9 @@ export class ShowsService {
       throw new NotFoundException(USER_BOOKMARK_MESSAGES.COMMON.SHOW.NOT_FOUND);
     }
 
-    // 이미 찜했을 경우에 에러 메시지를 발생합니다.
+    // // 이미 찜했을 경우에 에러 메시지를 발생합니다.
     const bookmark = await this.bookmarkRepository.findOne({
-      where: { showId: show.id, userId: user.id },
+      where: { showId, userId: user.id },
     });
     if (bookmark) {
       throw new ConflictException(USER_BOOKMARK_MESSAGES.COMMON.BOOKMARK.ALREADY_EXISTS);
@@ -70,9 +70,10 @@ export class ShowsService {
 
     // 찜하기를 하지 않았을 경우에 새로운 찜하기를 생성합니다.
     const newBookmark = this.bookmarkRepository.create({
+      showId,
       userId: user.id,
-      showId: show.id,
     });
+    console.log(newBookmark);
     await this.bookmarkRepository.save(newBookmark);
 
     return newBookmark;

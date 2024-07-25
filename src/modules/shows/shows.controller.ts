@@ -9,6 +9,7 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { CreateShowDto } from './dto/create-show.dto';
@@ -74,7 +75,8 @@ export class ShowsController {
   @Post(':showId/bookmark')
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(AuthGuard('jwt'))
-  async createBookmark(@Param('showId') showId: number, user: User) {
+  async createBookmark(@Param('showId') showId: number, @Req() req: any) {
+    const user: User = req.user;
     await this.showsService.createBookmark(showId, user);
     return { message: USER_BOOKMARK_MESSAGES.COMMON.BOOKMARK.SUCCESS.COMPLETED };
   }
