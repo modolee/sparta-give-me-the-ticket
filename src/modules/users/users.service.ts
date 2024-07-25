@@ -43,9 +43,7 @@ export class UsersService {
     const user = await this.userRepository.findOneBy({ id });
 
     if (!user) {
-      throw new NotFoundException({
-        message: USER_MESSAGES.USER.COMMON.NOT_FOUND,
-      });
+      throw new NotFoundException(USER_MESSAGES.USER.COMMON.NOT_FOUND);
     }
 
     /** 이메일 수정 **/
@@ -54,9 +52,7 @@ export class UsersService {
 
       // 다른 유저와 이메일 중복 시
       if (isExistingEmail && isExistingEmail.id !== id) {
-        throw new ConflictException({
-          message: USER_MESSAGES.USER.USERINFO.UPDATE.FAILURE.EMAIL.CONFLICT,
-        });
+        throw new ConflictException(USER_MESSAGES.USER.USERINFO.UPDATE.FAILURE.EMAIL.CONFLICT);
       }
 
       // 이메일 업데이트
@@ -69,9 +65,7 @@ export class UsersService {
 
       // 다른 유저와 닉네임 중복 시
       if (isExistingNickname && isExistingNickname.id !== id) {
-        throw new ConflictException({
-          message: USER_MESSAGES.USER.USERINFO.UPDATE.FAILURE.NICKNAME.CONFLICT,
-        });
+        throw new ConflictException(USER_MESSAGES.USER.USERINFO.UPDATE.FAILURE.NICKNAME.CONFLICT);
       }
 
       // 닉네임 업데이트
@@ -89,9 +83,7 @@ export class UsersService {
     const isPasswordMatch = await bcrypt.compare(currentPassword, user.password);
 
     if (!isPasswordMatch) {
-      throw new ConflictException({
-        message: USER_MESSAGES.USER.USERINFO.UPDATE.FAILURE.PASSWORD.MISMATCH,
-      });
+      throw new ConflictException(USER_MESSAGES.USER.USERINFO.UPDATE.FAILURE.PASSWORD.MISMATCH);
     }
 
     // 변경된 비밀번호 해시화
