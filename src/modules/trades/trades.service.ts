@@ -37,6 +37,7 @@ export class TradesService {
     date.setSeconds(seconds);
     return date;
   }
+
   //티켓 정보를 레디스에 저장하는 함수
   async addRedisTicket(createTicketId: string, expired: Date) {
     const value = '1';
@@ -67,12 +68,25 @@ export class TradesService {
       }
     });
   }
+  //티켓 만료시간을 반환하는 함수
+  async returnCloseTime(ticketId: number) {
+    const ticket = await this.TicketRepository.findOne({ where: { id: ticketId } });
+
+    const { date, time } = ticket;
+
+    const combinedString = `${String(date)}T${String(time)}`;
+
+    const minMinutes = 60 * 1000 * 60;
+
+    const showTime = new Date(combinedString);
+
+    const closeTime = new Date(showTime.getTime() - minMinutes);
+
+    return closeTime;
+  }
 
   //=========ConvenienceFunction======================
-  // async
-  // async
-  // async
-  // async
+  //중고 거래 목록 보기//완료
   async getList() {
     let trade_list = await this.TradeRepository.find({
       select: { id: true, showId: true, price: true },
@@ -108,7 +122,7 @@ export class TradesService {
     return trade_list;
   }
 
-  //중고 거래 상세 보기
+  //중고 거래 상세 보기 //완료
   async getTradeDetail(tradeId: number) {
     let trade_list = await this.TradeRepository.find({
       select: { id: true, showId: true, price: true, sellerId: true },
@@ -142,7 +156,7 @@ export class TradesService {
   }
 
   //중고거래 생성 함수
-  //sellerId는 인증을 통해 받게 될 예정 //sellerId,ticket_id,showId,price 까지 구함, closedAt만 구하면 됨
+  //sellerId는 인증을 통해 받게 될 예정 //sellerId,ticket_id,showId,price 까지 구함, closedAt만 구하면 됨(반쯤 구한듯 하다)
   async createTrade(createTradeDto: CreateTradeDto, sellerId) {
     const { ticketId, price } = createTradeDto;
 
@@ -154,13 +168,17 @@ export class TradesService {
     const show = await this.ShowRepository.findOne({ where: { id: showId } });
     if (!show) throw new NotFoundException('해당 공연이 존재하지 않습니다');
 
-    const schedule = await this.ScheduleRepository.findOne({ where: { showId: showId } });
+    const schedule = await this.ScheduleRepository.findOne({
+      where: { showId: showId, time: ticket.time },
+    });
     if (!schedule) throw new NotFoundException('해당 일정이 존재하지 않습니다');
 
-    console.log(schedule.date, schedule.date);
+    const closedAt = this.returnCloseTime(ticket.id);
+
+    return { ticketId, showId, price, closedAt };
   }
 
-  //중고 거래 수정 메서드
+  //중고 거래 수정 메서드 //Id 값만 가져와서 검증만 추가하면 완료
   async updateTrade(updateTradeDto: UpdateTradeDto) {
     const { price, tradeId } = updateTradeDto;
 
@@ -170,7 +188,7 @@ export class TradesService {
     return await this.TradeRepository.update(tradeId, { price });
   }
 
-  //중고 거래 삭제 메서드
+  //중고 거래 삭제 메서드  //Id 값만 가져와서 검증만 추가하면 완료
   async deleteTrade(tradeId: number, id) {
     const trade = await this.TradeRepository.findOne({ where: { id: tradeId } });
     if (!trade) throw new NotFoundException(`해당 거래가 존재하지 않습니다`);
@@ -181,6 +199,38 @@ export class TradesService {
     const trade = await this.TradeRepository.findOne({ where: { id: tradeId } });
     if (!trade) throw new NotFoundException(`해당 거래가 존재하지 않습니다`);
 
-    //기존에 존재하는 id제거
+    const ticket = await this.TicketRepository.findOne({ where: { id: trade.ticketId } });
+
+    //시간 만들기 로직==추후 createTrade로 옮길 예정
+    const closedAt = this.returnCloseTime(ticket.id);
+
+    //현재 가장 높은 showId보다 1 높은 값
+    let query = await this.ShowRepository.query('SELECT MAX(id) AS maxId FROM shows');
+    const newId = query.maxId + 1;
+
+    //티켓 생성
+    // this.addRedisTicket(String(newId), closedAt);
+
+    // //기존에 존재하는 id를 레디스에서 제거
+    // this.deleteRedisTicket(String(trade.ticketId));
+
+    //새로운 티켓 id를 레디스에 저장s
+  }
+
+  //=======================
+  async test(ticketId: number) {
+    const ticket = await this.TicketRepository.findOne({ where: { id: ticketId } });
+
+    const { date, time } = ticket;
+
+    const combinedString = `${String(date)}T${String(time)}`;
+
+    const minMinutes = 60 * 1000 * 60;
+
+    const showTime = new Date(combinedString);
+
+    const closeTime = new Date(showTime.getTime() - minMinutes);
+
+    return closeTime;
   }
 }
