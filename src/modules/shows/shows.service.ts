@@ -186,42 +186,40 @@ export class ShowsService {
 
       // 현재의 시간에서 1시간 전으로 시간 제한을 설정
       const oneHoursBefore = new Date();
-      oneHoursBefore.setHours(oneHoursBefore.getHours() - 1);
+      oneHoursBefore.setHours(oneHoursBefore.getHours() - SHOW_TICKETS.COMMON.TICKET.HOURS);
 
-      // string 형식인 time을 Date 객체로 변환
       const showTime = new Date(schedule.time);
 
       // 공연 시간이 1시간 이전일 경우 환불하기 어렵다는 메시지 전달
       if (showTime < oneHoursBefore) {
-        throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.TIME.EXPIRED);
+        throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.REFUND.EXPIRED);
       }
 
       // 현재 시간 가져오기
       const nowTime = new Date();
 
       // 티켓 예매 시점 확인 (티켓의 생성 시점)
-      const bookingTime = new Date(ticket.createdAt); // Assuming there's a `createdAt` field
-
-      // 공연 시작 3일 전 시간 계산
-      const threeDaysBeforeShow = new Date(showTime.getTime() - 3 * 24 * 60 * 60 * 1000); // 3일을 밀리초로 변환
+      const bookingTime = new Date(ticket.createdAt);
+      // 공연 시작 3일 전 시간 계산 및 3일을 밀리초로 변환
+      const threeDaysBeforeShow = new Date(showTime.getTime() - 3 * 24 * 60 * 60 * 1000);
 
       // 환불 정책에 따른 비율 계산
-      let refundPoint = 0;
+      let refundPoint = SHOW_TICKETS.COMMON.REFUND_POINT;
 
       // 예매 시점이 공연 시작 3일 전까지인지 확인
       if (bookingTime > threeDaysBeforeShow) {
-        throw new BadRequestException(' 공연 환불은 최소 3일 전까지만 가능합니다.');
+        throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.REFUND.NOT_ALLOWED);
       }
 
       // 환불 가능 여부와 비율 결정
       const timeDiff = showTime.getTime() - nowTime.getTime();
       const hoursUntilShow = Math.ceil(timeDiff / (1000 * 60 * 60));
 
-      if (hoursUntilShow <= 1) {
-        refundPoint = ticket.price * 0.1; // 공연 시작 1시간 전까지 10% 환불
-      } else if (hoursUntilShow <= 72) {
-        refundPoint = ticket.price * 0.5; // 공연 시작 3일 전까지 50% 환불
-      } else if (hoursUntilShow <= 240) {
+      if (hoursUntilShow <= SHOW_TICKETS.COMMON.TICKET.PRICE.ONE_HOURS) {
+        refundPoint = ticket.price * SHOW_TICKETS.COMMON.TICKET.PERCENT.TEN; // 공연 시작 1시간 전까지 10% 환불
+      } else if (hoursUntilShow <= SHOW_TICKETS.COMMON.TICKET.PRICE.THREE_DAYS) {
+        refundPoint = ticket.price * SHOW_TICKETS.COMMON.TICKET.PERCENT.FIFTY; // 공연 시작 3일 전까지 50% 환불
+      } else if (hoursUntilShow <= SHOW_TICKETS.COMMON.TICKET.PRICE.TEN_DAYS) {
         refundPoint = ticket.price; // 공연 시작 10일 전까지 전액 환불
       } else {
         refundPoint = ticket.price; // 공연 예매 후 24시간 이내 전액 환불
@@ -235,7 +233,7 @@ export class ShowsService {
       await queryRunner.manager.save(User, user);
 
       // 좌석 증가 처리
-      schedule.remainSeat += 1;
+      schedule.remainSeat += SHOW_TICKETS.COMMON.SEAT.INCREASED;
 
       await queryRunner.manager.save(Schedule, schedule);
 
