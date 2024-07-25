@@ -18,5 +18,9 @@ export const SHOW_TICKET_MESSAGES = {
     TICKET: {
       NOT_FOUND: '티켓을 찾을 수 없습니다.',
     },
+    REFUND: {
+      EXPIRED: '공연 시간 1시간 이전에는 티켓을 환불할 수 없습니다.',
+      NOT_ALLOWED: '공연 환불은 최소 3일 전까지만 가능합니다.',
+    },
   },
 };
