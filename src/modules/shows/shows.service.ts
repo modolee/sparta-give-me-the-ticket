@@ -10,7 +10,7 @@ import { Show } from 'src/entities/shows/show.entity';
 import { Ticket } from 'src/entities/shows/ticket.entity';
 import { Bookmark } from 'src/entities/users/bookmark.entity';
 import { User } from 'src/entities/users/user.entity';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, Like, Repository } from 'typeorm';
 import { CreateShowDto } from './dto/create-show.dto';
 import { USER_BOOKMARK_MESSAGES } from 'src/commons/constants/users/user-bookmark-messages.constant';
 import { SHOW_TICKET_MESSAGES } from 'src/commons/constants/shows/show-ticket-messages.constant';
@@ -20,6 +20,7 @@ import { TicketStatus } from 'src/commons/types/shows/ticket.type';
 import { UpdateShowDto } from './dto/update-show.dto';
 import { SHOW_MESSAGES } from 'src/commons/constants/shows/show-messages.constant';
 import { USER_MESSAGES } from 'src/commons/constants/users/user-message.constant';
+import { GetShowListDto } from './dto/get-show-list.dto';
 
 @Injectable()
 export class ShowsService {
@@ -48,7 +49,7 @@ export class ShowsService {
     const user = await this.userRepository.findOne({ where: { id: userId } });
 
     if (!user) {
-      throw new NotFoundException(USER_MESSAGES.USER.USERINFO.UPDATE.FAILURE.USER_NOT_FOUND);
+      throw new NotFoundException(USER_MESSAGES.USER.COMMON.NOT_FOUND);
     }
 
     //공연 생성
@@ -88,8 +89,18 @@ export class ShowsService {
   }
 
   /*공연 목록 조회 */
-  async getShowList(category: string, title: string) {
-    return;
+  async getShowList({ category, search }: GetShowListDto) {
+    const shows = await this.showRepository.find({
+      where: {
+        ...(category && { category }),
+        ...(search && { title: Like(`%${search}%`) }),
+      },
+    });
+    return {
+      status: HttpStatus.CREATED,
+      message: SHOW_MESSAGES.GET_LIST.SUCCEED,
+      data: shows,
+    };
   }
 
   /*공연 상세 조회 */

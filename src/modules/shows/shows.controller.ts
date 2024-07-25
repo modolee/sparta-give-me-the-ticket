@@ -20,6 +20,7 @@ import { Schedule } from 'src/entities/shows/schedule.entity';
 import { Show } from 'src/entities/shows/show.entity';
 import { ApiTags } from '@nestjs/swagger';
 import { UpdateShowDto } from './dto/update-show.dto';
+import { GetShowListDto } from './dto/get-show-list.dto';
 
 @ApiTags('공연')
 @Controller('shows')
@@ -32,7 +33,7 @@ export class ShowsController {
    * @returns
    * */
   @Post()
-  //@UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('local'))
   async createShow(@Body() createShowDto: CreateShowDto, userId: number) {
     return await this.showsService.createShow(createShowDto, userId);
   }
@@ -42,8 +43,8 @@ export class ShowsController {
    * @returns
    * */
   @Get()
-  getShowList(@Query('category') category: string, @Query('search') title: string) {
-    return this.showsService.getShowList(category, title);
+  getShowList(@Query() getShowListDto: GetShowListDto) {
+    return this.showsService.getShowList(getShowListDto);
   }
 
   /**
