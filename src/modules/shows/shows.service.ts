@@ -16,6 +16,8 @@ import { SHOW_TICKET_MESSAGES } from 'src/commons/constants/shows/show-ticket-me
 import { Schedule } from 'src/entities/shows/schedule.entity';
 import { SHOW_TICKETS } from 'src/commons/constants/shows/show-tickets.constant';
 import { TicketStatus } from 'src/commons/types/shows/ticket.type';
+import { DeleteBookmarkDto } from './dto/delete-bookmark.dto';
+import { format, isBefore, parse, set, subHours } from 'date-fns';
 
 @Injectable()
 export class ShowsService {
@@ -73,25 +75,27 @@ export class ShowsService {
       showId,
       userId: user.id,
     });
-    console.log(newBookmark);
+
     await this.bookmarkRepository.save(newBookmark);
 
     return newBookmark;
   }
 
   /*공연 찜하기 취소 */
-  async deleteBookmark(bookmarkId: number, showId: number) {
+  async deleteBookmark({ bookmarkId, showId }: DeleteBookmarkDto) {
     // 본인이 찜한 공연이 있는지 확인합니다.
     const bookmark = await this.bookmarkRepository.findOne({
       where: { id: bookmarkId, showId },
     });
+
     if (!bookmark) {
       throw new NotFoundException(USER_BOOKMARK_MESSAGES.COMMON.CANCEL_BOOKMARK.NOT_FOUND);
     }
     // 찜하기를 취소합니다. (hard delete)
-    await this.bookmarkRepository.delete(bookmark);
-
+    await this.bookmarkRepository.delete({ id: bookmarkId });
     return bookmark;
+
+    //remove 검색, delete는 id 값을 넘겨줘야한다.
   }
   /* 티켓 예매 */
   async createTicket(showId: number, scheduleId: number, user: User) {
@@ -116,15 +120,26 @@ export class ShowsService {
         throw new NotFoundException(SHOW_TICKET_MESSAGES.COMMON.SHOW.NOT_FOUND);
       }
 
-      // 현재의 시간에서 2시간 전으로 시간 제한을 설정
-      const twoHoursBefore = new Date();
-      twoHoursBefore.setHours(twoHoursBefore.getHours() - SHOW_TICKETS.COMMON.SHOW.HOURS);
+      if (schedule.remainSeat < SHOW_TICKETS.COMMON.SEAT.UNSIGNED) {
+        throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.SEAT.NOT_ENOUGH);
+      }
 
-      // string 형식인 time을 Date 객체로 변환
-      const showTime = new Date(schedule.time);
+      const nowTime = new Date();
+      console.log('현재 시간:', format(nowTime, 'HH:mm:ss'));
 
-      // 공연 시간이 2시간 이전일 경우 티켓을 구매하기 어렵다는 메시지 전달
-      if (showTime < twoHoursBefore) {
+      // 공연 시간을 string에서 Date 객체로 변환 (현재 날짜에 시간만 설정)
+      const scheduleTimeString = schedule.time;
+      const [hours, minutes] = scheduleTimeString.split(':').map(Number);
+
+      // 현재 날짜에 공연 시간 설정
+      const showTime = set(new Date(), { hours, minutes, seconds: 0, milliseconds: 0 });
+      console.log('공연 시간:', format(showTime, 'HH:mm:ss'));
+
+      // 공연 시간 기준 2시간 전
+      const twoHoursBeforeShowTime = subHours(showTime, 2);
+      console.log('공연 시간 기준 2시간 전:', format(twoHoursBeforeShowTime, 'HH:mm:ss'));
+
+      if (nowTime <= twoHoursBeforeShowTime) {
         throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.TIME.EXPIRED);
       }
 
@@ -151,10 +166,6 @@ export class ShowsService {
 
       // 좌석 차감 처리
       schedule.remainSeat -= SHOW_TICKETS.COMMON.SEAT.DEDUCTED;
-
-      if (schedule.remainSeat < SHOW_TICKETS.COMMON.SEAT.UNSIGNED) {
-        throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.SEAT.NOT_ENOUGH);
-      }
 
       await queryRunner.manager.save(Schedule, schedule);
       await queryRunner.commitTransaction();

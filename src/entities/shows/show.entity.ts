@@ -9,7 +9,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { ShowCategory } from 'src/commons/types/shows/show-category.type';
+import { ShowCategory } from '../../commons/types/shows/show-category.type';
 import { User } from '../users/user.entity';
 import { Schedule } from './schedule.entity';
 import { Image } from '../images/image.entity';
@@ -23,6 +23,7 @@ export class Show {
   @PrimaryGeneratedColumn({ unsigned: true })
   id: number;
 
+  @Factory(() => randomInt(4, 6))
   //유저 엔티티 외래키 설정
   @Column({ type: 'int', name: 'user_id', unsigned: true })
   userId: number;

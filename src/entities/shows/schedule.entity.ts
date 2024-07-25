@@ -19,7 +19,7 @@ export class Schedule {
   id: number;
 
   //공연 엔티티 외래키 설정
-  @Factory(() => randomInt(1, 20))
+  @Factory(() => randomInt(6, 8))
   @Column({ type: 'int', name: 'show_id', unsigned: true })
   showId: number;
 

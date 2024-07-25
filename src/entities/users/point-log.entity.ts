@@ -7,7 +7,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { User } from './user.entity';
-import { PointType } from 'src/commons/types/users/point.type';
+import { PointType } from '../../commons/types/users/point.type';
 
 @Entity('point_logs')
 export class PointLog {
