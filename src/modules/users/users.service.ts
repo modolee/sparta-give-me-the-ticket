@@ -1,18 +1,31 @@
 import bcrypt from 'bcrypt';
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { User } from 'src/entities/users/user.entity';
 import { UserUpdateDto } from './dto/user-update.dto';
+import { PointLog } from 'src/entities/users/point-log.entity';
+import { PointType } from 'src/commons/types/users/point.type';
+import { ChargePointDto } from './dto/charge-point.dto';
 import { USER_MESSAGES } from 'src/commons/constants/users/user-message.constant';
 import { USER_CONSTANT } from 'src/commons/constants/users/user.constant';
 
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 
 @Injectable()
 export class UsersService {
   constructor(
+    // transaction 사용
+    private readonly dataSource: DataSource,
+
     @InjectRepository(User)
-    private readonly userRepository: Repository<User>
+    private readonly userRepository: Repository<User>,
+    @InjectRepository(PointLog)
+    private readonly pointLogRepository: Repository<PointLog>
   ) {}
 
   // 포인트 내역 조회
@@ -43,9 +56,7 @@ export class UsersService {
     const user = await this.userRepository.findOneBy({ id });
 
     if (!user) {
-      throw new NotFoundException({
-        message: USER_MESSAGES.USER.COMMON.NOT_FOUND,
-      });
+      throw new NotFoundException(USER_MESSAGES.USER.COMMON.NOT_FOUND);
     }
 
     /** 이메일 수정 **/
@@ -54,9 +65,7 @@ export class UsersService {
 
       // 다른 유저와 이메일 중복 시
       if (isExistingEmail && isExistingEmail.id !== id) {
-        throw new ConflictException({
-          message: USER_MESSAGES.USER.USERINFO.UPDATE.FAILURE.EMAIL.CONFLICT,
-        });
+        throw new ConflictException(USER_MESSAGES.USER.USERINFO.UPDATE.FAILURE.EMAIL.CONFLICT);
       }
 
       // 이메일 업데이트
@@ -69,9 +78,7 @@ export class UsersService {
 
       // 다른 유저와 닉네임 중복 시
       if (isExistingNickname && isExistingNickname.id !== id) {
-        throw new ConflictException({
-          message: USER_MESSAGES.USER.USERINFO.UPDATE.FAILURE.NICKNAME.CONFLICT,
-        });
+        throw new ConflictException(USER_MESSAGES.USER.USERINFO.UPDATE.FAILURE.NICKNAME.CONFLICT);
       }
 
       // 닉네임 업데이트
@@ -89,9 +96,7 @@ export class UsersService {
     const isPasswordMatch = await bcrypt.compare(currentPassword, user.password);
 
     if (!isPasswordMatch) {
-      throw new ConflictException({
-        message: USER_MESSAGES.USER.USERINFO.UPDATE.FAILURE.PASSWORD.MISMATCH,
-      });
+      throw new ConflictException(USER_MESSAGES.USER.USERINFO.UPDATE.FAILURE.PASSWORD.MISMATCH);
     }
 
     // 변경된 비밀번호 해시화
@@ -109,8 +114,51 @@ export class UsersService {
   }
 
   // 사용자 포인트 충전
-  async chargePoint() {
-    return;
+  async chargePoint(id: number, chargePointDto: ChargePointDto) {
+    const { amount } = chargePointDto;
+
+    // transaction 시작
+    const queryRunner = this.dataSource.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // 사용자 조회
+      const user = await queryRunner.manager.findOne(User, { where: { id } });
+
+      if (!user) {
+        throw new NotFoundException(USER_MESSAGES.USER.COMMON.NOT_FOUND);
+      }
+
+      // 포인트 충전
+      user.point += amount;
+
+      // 포인트 충전 로그 기록
+      const pointLog = new PointLog();
+
+      pointLog.user = user;
+      pointLog.userId = user.id;
+      pointLog.price = amount;
+      pointLog.description = USER_MESSAGES.USER.POINT_CHARGE.DESCRIPTION;
+      pointLog.type = PointType.DEPOSIT;
+
+      // 포인트 로그 업데이트
+      await queryRunner.manager.save(PointLog, pointLog);
+      // 유저 업데이트
+      await queryRunner.manager.save(User, user);
+
+      await queryRunner.commitTransaction();
+      await queryRunner.release();
+
+      return user;
+    } catch (err) {
+      // 실패 시 rollback
+      await queryRunner.rollbackTransaction();
+      await queryRunner.release();
+
+      throw new InternalServerErrorException(USER_MESSAGES.USER.POINT_CHARGE.FAILURE.FAIL);
+    }
   }
 
   // 회원 탈퇴
