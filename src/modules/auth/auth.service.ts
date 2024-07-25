@@ -11,6 +11,7 @@ import { User } from 'src/entities/users/user.entity';
 import { Repository } from 'typeorm';
 import { compare, hash } from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
+import _ from 'lodash';
 
 @Injectable()
 export class AuthService {
@@ -49,7 +50,7 @@ export class AuthService {
 
     const user = await this.usersRepository.save({
       email,
-      hashedPassword,
+      password: hashedPassword,
       nickname,
     });
 
@@ -61,6 +62,16 @@ export class AuthService {
   async validateUser({ email, password }) {
     const user = await this.usersRepository.findOne({
       where: { email },
+      select: {
+        id: true,
+        email: true,
+        nickname: true,
+        password: true,
+        refreshToken: true,
+        point: true,
+        profileImg: true,
+        deletedAt: true,
+      },
     });
 
     if (!user || user.deletedAt) {
@@ -93,7 +104,20 @@ export class AuthService {
 
   // 로그아웃
   async signOut(userId: number) {
-    return;
+    // 이미 로그아웃 상태인지 확인
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+
+    console.log(user.refreshToken);
+
+    if (user.refreshToken === '') {
+      throw new BadRequestException('이미 로그아웃 되었습니다.');
+    }
+
+    // 로그아웃 (토큰 삭제)
+    user.refreshToken = null;
+    await this.usersRepository.save(user);
+
+    return { status: 201, message: '로그아웃에 성공했습니다.' };
   }
 
   // 토큰 재발급
