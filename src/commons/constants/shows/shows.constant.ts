@@ -1,1 +1,1 @@
-export const MIN_SHOW_CONTENT_LENGTH = 150;
+export const MIN_SHOW_CONTENT_LENGTH = 30;

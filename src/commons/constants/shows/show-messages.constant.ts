@@ -4,6 +4,7 @@ export const SHOW_MESSAGES = {
   COMMON: {
     TITLE: {
       REQUIRED: '공연명을 입력해주세요.',
+      EXISTED: '이미 등록된 공연입니다.',
     },
 
     CONTENT: {
@@ -30,6 +31,14 @@ export const SHOW_MESSAGES = {
 
     TOTAL_SEAT: {
       REQUIRED: '공연 총 좌석 수를 입력해주세요.',
+    },
+
+    DATE: {
+      REQUIRED: '공연 날짜를 입력해주세요.',
+    },
+
+    TIME: {
+      REQUIRED: '공연 시간을 입력해주세요.',
     },
 
     NOT_FOUND: '공연이 존재하지 않습니다.',

@@ -23,6 +23,10 @@ export class Schedule {
   @Column({ type: 'int', name: 'show_id', unsigned: true })
   showId: number;
 
+  /**
+   * 공연 날짜
+   * @example "2024-07-25"
+   */
   @Factory((faker) => {
     const today = new Date();
     const futureDate = new Date();
@@ -32,13 +36,16 @@ export class Schedule {
   @Column({ type: 'date' })
   date: Date;
 
+  /**
+   * 공연 날짜
+   * @example "2024-07-25"
+   */
   @Factory((faker) => {
     const hour = randomInt(0, 23).toString().padStart(2, '0');
     const minute = randomInt(0, 59).toString().padStart(2, '0');
     return `${hour}:${minute}`;
   })
   @Column({ type: 'time' })
-  @IsMilitaryTime()
   time: string;
 
   @Factory(() => randomInt(50, 1000))

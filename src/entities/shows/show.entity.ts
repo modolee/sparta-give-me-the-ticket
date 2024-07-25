@@ -38,7 +38,7 @@ export class Show {
 
   /**
    * 공연 설명
-   * @example "~~~"
+   * @example "브로드웨이 역사상 가장 롱런하고 있는 미국 뮤지컬"
    */
   @Factory((faker) => faker.lorem.words(10))
   @Column({ type: 'text', nullable: false })
@@ -65,7 +65,7 @@ export class Show {
 
   /**
    * 공연 장소
-   * @example "충무로 아트센터"
+   * @example "서울시 구로구 경인로 662, 디큐브 링크아트센터"
    */
   @Factory((faker) => faker.lorem.words(5))
   @Column({ type: 'varchar', nullable: false })

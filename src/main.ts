@@ -20,9 +20,16 @@ async function bootstrap() {
     .setTitle('티켓 예매 및 중고 거래 서비스')
     .setVersion('1.0')
     .addTag('Ticketing')
+    .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' })
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('/', app, document);
+  SwaggerModule.setup('/', app, document, {
+    swaggerOptions: {
+      persistAuthorization: true, // 새로고침 시에도 JWT 유지하기
+      tagsSorter: 'alpha', // API 그룹 정렬을 알파벳 순으로
+      operationsSorter: 'alpha', // API 그룹 내 정렬을 알파벳 순으로
+    },
+  });
 
   await app.listen(port);
 }
