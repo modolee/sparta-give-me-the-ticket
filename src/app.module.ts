@@ -10,7 +10,7 @@ import { UsersModule } from './modules/users/users.module';
 import { ShowsModule } from './modules/shows/shows.module';
 import { TradesModule } from './modules/trades/trades.module';
 import { ImagesModule } from './modules/images/images.module';
-
+import { RedisModule } from './modules/redis/redis.module';
 
 @Module({
   imports: [
@@ -24,6 +24,7 @@ import { ImagesModule } from './modules/images/images.module';
     ShowsModule,
     TradesModule,
     ImagesModule,
+    RedisModule,
   ],
   controllers: [AppController],
   providers: [AppService],
