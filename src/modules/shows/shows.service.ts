@@ -105,7 +105,37 @@ export class ShowsService {
 
   /*공연 상세 조회 */
   async getShow(showId: number) {
-    return;
+    const show = await this.showRepository.findOne({
+      where: { id: showId },
+      relations: { schedules: true },
+    });
+
+    if (!show) {
+      throw new NotFoundException(SHOW_MESSAGES.COMMON.NOT_FOUND);
+    }
+
+    return {
+      status: HttpStatus.OK,
+      message: SHOW_MESSAGES.GET.SUCCEED,
+      data: {
+        id: show.id,
+        userId: show.userId,
+        title: show.title,
+        content: show.content,
+        category: show.category,
+        runtime: show.runtime,
+        location: show.location,
+        price: show.price,
+        totalSeat: show.totalSeat,
+        schedules: show.schedules.map(({ date, time }) => ({
+          date,
+          time,
+        })),
+        createdAt: show.createdAt,
+        updatedAt: show.updatedAt,
+        deletedAt: show.deletedAt,
+      },
+    };
   }
 
   /*공연 수정 */
