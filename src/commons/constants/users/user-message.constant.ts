@@ -28,5 +28,13 @@ export const USER_MESSAGES = {
         },
       },
     },
+    POINT_CHARGE: {
+      DESCRIPTION: '포인트 충전',
+      SUCCESS: '포인트 충전이 완료되었습니다.',
+      FAILURE: {
+        EMPTY: '충전 금액을 입력해 주세요.',
+        POSITIVE: '충전 금액은 양수여야 합니다.',
+      },
+    },
   },
 };

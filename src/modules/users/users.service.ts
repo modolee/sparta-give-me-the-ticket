@@ -2,6 +2,9 @@ import bcrypt from 'bcrypt';
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { User } from 'src/entities/users/user.entity';
 import { UserUpdateDto } from './dto/user-update.dto';
+import { PointLog } from 'src/entities/users/point-log.entity';
+import { PointType } from 'src/commons/types/users/point.type';
+import { ChargePointDto } from './dto/charge-point.dto';
 import { USER_MESSAGES } from 'src/commons/constants/users/user-message.constant';
 import { USER_CONSTANT } from 'src/commons/constants/users/user.constant';
 
@@ -12,7 +15,9 @@ import { Repository } from 'typeorm';
 export class UsersService {
   constructor(
     @InjectRepository(User)
-    private readonly userRepository: Repository<User>
+    private readonly userRepository: Repository<User>,
+    @InjectRepository(PointLog)
+    private readonly pointLogRepository: Repository<PointLog>
   ) {}
 
   // 포인트 내역 조회
@@ -101,8 +106,32 @@ export class UsersService {
   }
 
   // 사용자 포인트 충전
-  async chargePoint() {
-    return;
+  async chargePoint(id: number, chargePointDto: ChargePointDto) {
+    const { amount } = chargePointDto;
+
+    const user = await this.userRepository.findOneBy({ id });
+
+    if (!user) {
+      throw new NotFoundException(USER_MESSAGES.USER.COMMON.NOT_FOUND);
+    }
+
+    // 포인트 충전
+    user.point += amount;
+
+    // 포인트 로그
+    const pointLog = new PointLog();
+
+    pointLog.user = user;
+    pointLog.userId = user.id;
+    pointLog.price = amount;
+    pointLog.description = USER_MESSAGES.USER.POINT_CHARGE.DESCRIPTION;
+    pointLog.type = PointType.DEPOSIT;
+
+    await this.pointLogRepository.save(pointLog);
+
+    const updateUserPoint = await this.userRepository.save(user);
+
+    return updateUserPoint;
   }
 
   // 회원 탈퇴

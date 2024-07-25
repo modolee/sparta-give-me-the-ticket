@@ -13,6 +13,7 @@ import { AuthGuard } from '@nestjs/passport';
 
 import { UsersService } from './users.service';
 import { UserUpdateDto } from './dto/user-update.dto';
+import { ChargePointDto } from './dto/charge-point.dto';
 import { USER_MESSAGES } from 'src/commons/constants/users/user-message.constant';
 
 @Controller('users')
@@ -62,9 +63,16 @@ export class UsersController {
   }
 
   // 사용자 포인트 충전
+  @UseGuards(AuthGuard('jwt'))
   @Post('/me/point')
-  async chargePoint() {
-    return await this.userService.chargePoint();
+  async chargePoint(@Req() req: any, @Body() chargePointDto: ChargePointDto) {
+    const updateUserPoint = await this.userService.chargePoint(req.user.id, chargePointDto);
+
+    return {
+      statusCode: HttpStatus.OK,
+      message: USER_MESSAGES.USER.POINT_CHARGE.SUCCESS,
+      updateUserPoint,
+    };
   }
 
   /**
