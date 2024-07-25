@@ -87,8 +87,8 @@ export class AuthService {
     return user;
   }
 
-  // 로그인
-  async signIn(user: User) {
+  // 토큰 발급
+  async generateTokens(user: User) {
     // 토큰 발급
     const accessToken = this.jwtService.sign({ id: user.id });
     const refreshToken = this.jwtService.sign(
@@ -102,12 +102,15 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
+  // 로그인
+  async signIn(user: User) {
+    return await this.generateTokens(user);
+  }
+
   // 로그아웃
   async signOut(userId: number) {
     // 이미 로그아웃 상태인지 확인
     const user = await this.usersRepository.findOne({ where: { id: userId } });
-
-    console.log(user.refreshToken);
 
     if (user.refreshToken === '') {
       throw new BadRequestException('이미 로그아웃 되었습니다.');
@@ -121,7 +124,7 @@ export class AuthService {
   }
 
   // 토큰 재발급
-  async reissue(userId: number) {
-    return;
+  async reissue(user: User) {
+    return await this.generateTokens(user);
   }
 }
