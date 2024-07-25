@@ -26,7 +26,7 @@ export class ShowsController {
 
   /**
    *  공연 생성
-   * @Param
+   * @Param createShowDto
    * @returns
    * */
   @Post()
@@ -36,6 +36,7 @@ export class ShowsController {
 
   /**
    *  공연 목록 조회
+   * @returns
    * */
   @Get()
   getShowList(@Query('category') category: string, @Query('search') title: string) {
@@ -44,6 +45,8 @@ export class ShowsController {
 
   /**
    * 공연 상세 조회
+   * @param showId
+   * @returns
    * */
   @Get(':showId')
   getShow(@Param('showId') showId: number) {
@@ -52,6 +55,8 @@ export class ShowsController {
 
   /**
    * 공연 수정
+   * @param showId
+   * @returns
    * */
   @Patch(':showId')
   updateShow(@Param('showId') showId: number) {
@@ -60,6 +65,8 @@ export class ShowsController {
 
   /**
    * 공연 삭제
+   * @param showId
+   * @returns
    * */
   @Delete(':showId')
   deleteShow(@Param('showId') showId: number) {
