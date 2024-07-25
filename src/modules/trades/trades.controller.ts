@@ -38,7 +38,7 @@ export class TradesController {
     return await this.tradesService.updateTrade(updateTradeDto);
   }
 
-  @Delete()
+  @Delete() //id는 인증과정에서 받을 예정
   async deleteTrade(@Param('tradeId', ParseIntPipe) tradeId, id) {
     return await this.tradesService.deleteTrade(tradeId, id);
   }
