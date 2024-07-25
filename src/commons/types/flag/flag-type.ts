@@ -1,0 +1,4 @@
+export enum FLAG {
+  ACTIVATION = 'ACTIVATION',
+  INACTIVE = 'INACTIVE',
+}

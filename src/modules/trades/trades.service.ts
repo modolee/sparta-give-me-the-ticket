@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { CreateTradeDto } from './dto/create-trade.dto';
 import { UpdateTradeDto } from './dto/update-trade.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { NotFoundException } from '@nestjs/common';
+import { Redis } from 'ioredis';
 
 //entities
 import { Trade } from 'src/entities/trades/trade.entity';
@@ -24,7 +25,8 @@ export class TradesService {
     @InjectRepository(Schedule)
     private ScheduleRepository: Repository<Schedule>,
     @InjectRepository(Ticket)
-    private TicketRepository: Repository<Ticket>
+    private TicketRepository: Repository<Ticket>,
+    @Inject('REDIS_CLIENT') private redisClient: Redis
   ) {}
 
   combineDateAndTime(dateStr: string, timeStr: string) {
@@ -35,6 +37,37 @@ export class TradesService {
     date.setSeconds(seconds);
     return date;
   }
+  //티켓 정보를 레디스에 저장하는 함수
+  async addRedisTicket(createTicketId: string, expired: Date) {
+    const value = '1';
+    const key = createTicketId;
+    const unixTimeStamp = Math.floor(expired.getTime() / 1000);
+
+    await this.redisClient.set(createTicketId, value, (err, result) => {
+      if (err) {
+        throw new Error('티켓을 생성할 수 없습니다 Redis에 에러 발생');
+      } else {
+        this.redisClient.expireat(key, unixTimeStamp, (err, result) => {
+          if (err) {
+            throw new Error('티켓을 생성할 수 없습니다 Redis에 에러 발생');
+          } else {
+            return { message: '성공적으로 티켓이 발급되었습니다.' };
+          }
+        });
+      }
+    });
+  }
+  //티켓 정보를 레디스에서 제거하는 함수
+  async deleteRedisTicket(deleteTicketId: string) {
+    await this.redisClient.del(deleteTicketId, (err, result) => {
+      if (err) {
+        throw new Error('티켓을 생성할 수 없습니다 Redis에 에러 발생');
+      } else {
+        return { message: '레디스에서 성공적으로 티켓이 제거 되었습니다.' };
+      }
+    });
+  }
+
   //=========ConvenienceFunction======================
   // async
   // async
@@ -143,9 +176,11 @@ export class TradesService {
     if (!trade) throw new NotFoundException(`해당 거래가 존재하지 않습니다`);
     return await this.TradeRepository.delete(tradeId);
   }
-  //티켓 발급 메서드
+  //티켓 구매 메서드
   async createTicket(tradeId: number) {
     const trade = await this.TradeRepository.findOne({ where: { id: tradeId } });
     if (!trade) throw new NotFoundException(`해당 거래가 존재하지 않습니다`);
+
+    //기존에 존재하는 id제거
   }
 }
