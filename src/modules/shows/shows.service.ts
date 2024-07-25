@@ -16,6 +16,7 @@ import { SHOW_TICKET_MESSAGES } from 'src/commons/constants/shows/show-ticket-me
 import { Schedule } from 'src/entities/shows/schedule.entity';
 import { SHOW_TICKETS } from 'src/commons/constants/shows/show-tickets.constant';
 import { TicketStatus } from 'src/commons/types/shows/ticket.type';
+import { UpdateShowDto } from './dto/update-show.dto';
 
 @Injectable()
 export class ShowsService {
@@ -29,7 +30,6 @@ export class ShowsService {
 
   /*공연 생성 */
   async createShow(createShowDto: CreateShowDto) {
-    const {};
     return;
   }
 
@@ -44,7 +44,7 @@ export class ShowsService {
   }
 
   /*공연 수정 */
-  async updateShow(showId: number) {
+  async updateShow(showId: number, updateShowDot: UpdateShowDto) {
     return;
   }
 

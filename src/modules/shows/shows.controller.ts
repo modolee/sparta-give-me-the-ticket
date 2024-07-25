@@ -13,13 +13,15 @@ import {
 } from '@nestjs/common';
 import { CreateShowDto } from './dto/create-show.dto';
 import { ShowsService } from 'src/modules/shows/shows.service';
-import { ShowCategory } from 'src/commons/types/shows/show-category.type';
 import { User } from 'src/entities/users/user.entity';
 import { USER_BOOKMARK_MESSAGES } from 'src/commons/constants/users/user-bookmark-messages.constant';
 import { AuthGuard } from '@nestjs/passport';
 import { Schedule } from 'src/entities/shows/schedule.entity';
 import { Show } from 'src/entities/shows/show.entity';
+import { ApiTags } from '@nestjs/swagger';
+import { UpdateShowDto } from './dto/update-show.dto';
 
+@ApiTags('공연')
 @Controller('shows')
 export class ShowsController {
   constructor(private readonly showsService: ShowsService) {}
@@ -59,8 +61,8 @@ export class ShowsController {
    * @returns
    * */
   @Patch(':showId')
-  updateShow(@Param('showId') showId: number) {
-    return this.showsService.updateShow(+showId);
+  updateShow(@Param('showId') showId: number, @Body() updateShowDot: UpdateShowDto) {
+    return this.showsService.updateShow(+showId, updateShowDot);
   }
 
   /**
