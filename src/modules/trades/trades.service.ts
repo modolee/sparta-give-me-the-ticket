@@ -102,21 +102,7 @@ export class TradesService {
   }
 
   //sellerId는 인증을 통해 받게 될 예정
-  async createTrade(createTradeDto: CreateTradeDto) {
-    const { ticketId, price } = createTradeDto;
-
-    let result = { price };
-    //ticket에서 showId를 추출
-    const ticket = await this.TicketRepository.findOne({
-      where: { id: ticketId },
-    });
-
-    const showId: number = ticket.showId;
-
-    const schedule = await this.ScheduleRepository.findOne({ where: { showId } });
-
-    return { 1: schedule.date, 2: schedule.time };
-  }
+  async createTrade(createTradeDto: CreateTradeDto) {}
   async updateTrade(updateTradeDto: UpdateTradeDto) {}
   async deleteTrade(tradeId: number) {}
   async createTicket(tradeId: number) {}
