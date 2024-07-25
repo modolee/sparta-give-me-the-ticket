@@ -67,9 +67,20 @@ export class UsersController {
     return await this.userService.chargePoint();
   }
 
-  // 회원 탈퇴
+  /**
+   * 회원 탈퇴
+   * @param req
+   * @returns
+   */
+  @UseGuards(AuthGuard('jwt'))
   @Delete('/me')
-  async deleteUser() {
-    return await this.userService.deleteUser();
+  async deleteUser(@Req() req: any) {
+    const deleteUser = await this.userService.deleteUser(req.user.id);
+
+    return {
+      statusCode: HttpStatus.OK,
+      message: '회원 탈퇴에 성공했습니다.',
+      deleteUser,
+    };
   }
 }

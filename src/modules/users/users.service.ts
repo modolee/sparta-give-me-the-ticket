@@ -114,7 +114,15 @@ export class UsersService {
   }
 
   // 회원 탈퇴
-  async deleteUser() {
-    return;
+  async deleteUser(id: number) {
+    const user = await this.userRepository.findOneBy({ id });
+
+    if (!user) {
+      throw new NotFoundException(USER_MESSAGES.USER.USERINFO.UPDATE.FAILURE.USER_NOT_FOUND);
+    }
+
+    const deleteUser = await this.userRepository.softDelete({ id });
+
+    return deleteUser;
   }
 }
