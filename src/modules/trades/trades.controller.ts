@@ -18,17 +18,17 @@ import { UpdateTradeDto } from './dto/update-trade.dto';
 export class TradesController {
   constructor(private readonly tradesService: TradesService) {}
 
-  @Get()
+  @Get('/sd')
   async getList() {
     return await this.tradesService.getList();
   }
 
   @Get()
-  async getTradeDetail(@Param('tradeId', ParseIntPipe) tradeId) {
+  async getTradeDetail(@Param('/tradeId', ParseIntPipe) tradeId) {
     return await this.tradesService.getTradeDetail(tradeId);
   }
 
-  @Post()
+  @Post('/:tradeId')
   async createTrade(@Body() createTradeDto: CreateTradeDto) {
     return await this.tradesService.createTrade(createTradeDto);
   }
@@ -39,8 +39,8 @@ export class TradesController {
   }
 
   @Delete()
-  async deleteTrade(@Param('tradeId', ParseIntPipe) tradeId) {
-    return await this.tradesService.deleteTrade(tradeId);
+  async deleteTrade(@Param('tradeId', ParseIntPipe) tradeId, id) {
+    return await this.tradesService.deleteTrade(tradeId, id);
   }
 
   @Post()
