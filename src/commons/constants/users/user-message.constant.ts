@@ -17,9 +17,9 @@ export const USER_MESSAGES = {
             CONFLICT: '이미 다른 회원이 사용 중인 닉네임 입니다.',
           },
           PASSWORD: {
+            EMPTY: '비밀번호를 입력해 주세요.',
             NOW: '현재 비밀번호를 입력해 주세요.',
-            CHANGE: '변경할 비밀번호를 입력해 주세요.',
-            WEAK: '비밀번호 규칙이 올바르지 않습니다.',
+            WEAK: '비밀번호는 최소 8자리 이상, 특수 문자 1개 이상의 영문 조합으로 입력해 주세요.',
             MISMATCH: '현재 비밀번호가 일치하지 않습니다.',
           },
           PROFILEIMG: {

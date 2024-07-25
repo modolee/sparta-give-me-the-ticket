@@ -14,23 +14,43 @@ import { Bookmark } from './bookmark.entity';
 import { Show } from '../shows/show.entity';
 import { Ticket } from '../shows/ticket.entity';
 import { Trade } from '../trades/trade.entity';
+import { USER_CONSTANT } from 'src/commons/constants/users/user.constant';
+import { USER_MESSAGES } from 'src/commons/constants/users/user-message.constant';
 
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn({ unsigned: true })
   id: number;
 
-  @IsNotEmpty({ message: '이메일을 입력해 주세요.' })
+  /**
+   * 이메일
+   * @example "modify@sample.com"
+   */
+  @IsNotEmpty({ message: USER_MESSAGES.USER.USERINFO.UPDATE.FAILURE.EMAIL.EMPTY })
   @IsEmail()
   @Column({ unique: true })
   email: string;
 
-  @IsNotEmpty({ message: '닉네임을 입력해 주세요.' })
+  /**
+   * 닉네임
+   * @example "Charlie"
+   */
+  @IsNotEmpty({ message: USER_MESSAGES.USER.USERINFO.UPDATE.FAILURE.NICKNAME.EMPTY })
   @Column({ unique: true })
   nickname: string;
 
-  @IsNotEmpty({ message: '비밀번호를 입력해 주세요.' })
-  @IsStrongPassword({ minLength: 8, minSymbols: 1 }, {})
+  /**
+   * 비밀번호
+   * @example "Test1234!"
+   */
+  @IsNotEmpty({ message: USER_MESSAGES.USER.USERINFO.UPDATE.FAILURE.PASSWORD.EMPTY })
+  @IsStrongPassword(
+    {
+      minLength: USER_CONSTANT.PASSWORD.MIN_LENGTH,
+      minSymbols: USER_CONSTANT.PASSWORD.MIN_SYMBOLS,
+    },
+    { message: USER_MESSAGES.USER.USERINFO.UPDATE.FAILURE.PASSWORD.WEAK }
+  )
   @Column({ select: false })
   password: string;
 
@@ -38,9 +58,13 @@ export class User {
   refreshToken: string;
 
   @IsNotEmpty()
-  @Column({ default: 1000000 })
+  @Column({ default: USER_CONSTANT.POINT.DEFAULT })
   point: number;
 
+  /**
+   * 프로필 이미지
+   * @example "https://example.com/profile.jpg"
+   */
   @Column()
   profileImg: string;
 

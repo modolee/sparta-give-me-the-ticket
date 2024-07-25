@@ -15,7 +15,11 @@ import { UsersService } from './users.service';
 import { UserUpdateDto } from './dto/user-update.dto';
 import { ChargePointDto } from './dto/charge-point.dto';
 import { USER_MESSAGES } from 'src/commons/constants/users/user-message.constant';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
+@UseGuards(AuthGuard('jwt'))
+@ApiTags('사용자')
+@ApiBearerAuth()
 @Controller('users')
 export class UsersController {
   constructor(private readonly userService: UsersService) {}
@@ -50,7 +54,6 @@ export class UsersController {
    * @param userUpdateDto
    * @returns
    */
-  @UseGuards(AuthGuard('jwt'))
   @Patch('/me')
   async updateUser(@Req() req: any, @Body() userUpdateDto: UserUpdateDto) {
     const updateUser = await this.userService.updateUser(req.user.id, userUpdateDto);
@@ -68,7 +71,6 @@ export class UsersController {
    * @param chargePointDto
    * @returns
    */
-  @UseGuards(AuthGuard('jwt'))
   @Post('/me/point')
   async chargePoint(@Req() req: any, @Body() chargePointDto: ChargePointDto) {
     const updateUserPoint = await this.userService.chargePoint(req.user.id, chargePointDto);
@@ -85,7 +87,6 @@ export class UsersController {
    * @param req
    * @returns
    */
-  @UseGuards(AuthGuard('jwt'))
   @Delete('/me')
   async deleteUser(@Req() req: any) {
     const deleteUser = await this.userService.deleteUser(req.user.id);
