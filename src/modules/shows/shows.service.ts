@@ -109,7 +109,7 @@ export class ShowsService {
 
       // 스케줄이 있는지 확인합니다.
       const schedule = await queryRunner.manager.findOne(Schedule, {
-        where: { id: scheduleId },
+        where: { id: scheduleId, showId },
       });
       if (!schedule) {
         throw new NotFoundException(SHOW_TICKET_MESSAGES.COMMON.SHOW.NOT_FOUND);
@@ -177,7 +177,7 @@ export class ShowsService {
       const ticket = await queryRunner.manager.findOne(Ticket, {
         where: {
           id: ticketId,
-          showId: showId,
+          showId,
         },
       });
       if (!ticket) {
@@ -196,13 +196,42 @@ export class ShowsService {
         throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.TIME.EXPIRED);
       }
 
-      // 티켓 상태를 환불로 업데이트 및 소프트 딜리트를 설정합니다.
+      // 현재 시간 가져오기
+      const nowTime = new Date();
+
+      // 티켓 예매 시점 확인 (티켓의 생성 시점)
+      const bookingTime = new Date(ticket.createdAt); // Assuming there's a `createdAt` field
+
+      // 공연 시작 3일 전 시간 계산
+      const threeDaysBeforeShow = new Date(showTime.getTime() - 3 * 24 * 60 * 60 * 1000); // 3일을 밀리초로 변환
+
+      // 환불 정책에 따른 비율 계산
+      let refundPoint = 0;
+
+      // 예매 시점이 공연 시작 3일 전까지인지 확인
+      if (bookingTime > threeDaysBeforeShow) {
+        throw new BadRequestException(' 공연 환불은 최소 3일 전까지만 가능합니다.');
+      }
+
+      // 환불 가능 여부와 비율 결정
+      const timeDiff = showTime.getTime() - nowTime.getTime();
+      const hoursUntilShow = Math.ceil(timeDiff / (1000 * 60 * 60));
+
+      if (hoursUntilShow <= 1) {
+        refundPoint = ticket.price * 0.1; // 공연 시작 1시간 전까지 10% 환불
+      } else if (hoursUntilShow <= 72) {
+        refundPoint = ticket.price * 0.5; // 공연 시작 3일 전까지 50% 환불
+      } else if (hoursUntilShow <= 240) {
+        refundPoint = ticket.price; // 공연 시작 10일 전까지 전액 환불
+      } else {
+        refundPoint = ticket.price; // 공연 예매 후 24시간 이내 전액 환불
+      }
+
+      // 티켓 상태를 환불로 업데이트를 합니다.
       ticket.status = TicketStatus.REFUNDED;
-      ticket.deletedAt = new Date();
       await queryRunner.manager.save(Ticket, ticket);
 
-      // 사용자의 포인트 환불
-      user.point += ticket.price;
+      user.point += refundPoint;
       await queryRunner.manager.save(User, user);
 
       // 좌석 증가 처리
