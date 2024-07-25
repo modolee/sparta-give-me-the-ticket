@@ -9,18 +9,21 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { ShowCategory } from 'src/commons/types/shows/show-category.type';
+import { ShowCategory } from '../../commons/types/shows/show-category.type';
 import { User } from '../users/user.entity';
 import { Schedule } from './schedule.entity';
 import { Image } from '../images/image.entity';
 import { Bookmark } from '../users/bookmark.entity';
 import { Ticket } from './ticket.entity';
+import { Factory } from 'nestjs-seeder';
+import { randomInt } from 'crypto';
 
 @Entity({ name: 'shows' })
 export class Show {
   @PrimaryGeneratedColumn({ unsigned: true })
   id: number;
 
+  @Factory(() => randomInt(4, 6))
   //유저 엔티티 외래키 설정
   @Column({ type: 'int', name: 'user_id', unsigned: true })
   userId: number;
@@ -29,13 +32,15 @@ export class Show {
    * 공연명
    * @example "시카고"
    */
+  @Factory((faker) => faker.lorem.words(3))
   @Column({ type: 'varchar', unique: true, nullable: false })
   title: string;
 
   /**
    * 공연 설명
-   * @example "~~~"
+   * @example "브로드웨이 역사상 가장 롱런하고 있는 미국 뮤지컬"
    */
+  @Factory((faker) => faker.lorem.words(10))
   @Column({ type: 'text', nullable: false })
   content: string;
 
@@ -43,6 +48,10 @@ export class Show {
    * 공연 카테고리
    * @example "Musical"
    */
+  @Factory((faker) => {
+    const categories = Object.values(ShowCategory);
+    return faker.helpers.arrayElement(categories);
+  })
   @Column({ type: 'enum', enum: ShowCategory, nullable: false })
   category: ShowCategory;
 
@@ -50,13 +59,15 @@ export class Show {
    * 공연 소요시간
    * @example 200
    */
+  @Factory(() => randomInt(50, 100))
   @Column({ type: 'int', nullable: false })
   runtime: number;
 
   /**
    * 공연 장소
-   * @example "충무로 아트센터"
+   * @example "서울시 구로구 경인로 662, 디큐브 링크아트센터"
    */
+  @Factory((faker) => faker.lorem.words(5))
   @Column({ type: 'varchar', nullable: false })
   location: string;
 
@@ -64,6 +75,7 @@ export class Show {
    * 공연 금액
    * @example 30000
    */
+  @Factory(() => randomInt(50000, 100000))
   @Column({ type: 'int', nullable: false })
   price: number;
 
@@ -71,6 +83,7 @@ export class Show {
    * 공연 총 좌석 수
    * @example 1800
    */
+  @Factory(() => randomInt(50, 1000))
   @Column({ type: 'int', nullable: false })
   totalSeat: number;
 
@@ -85,7 +98,7 @@ export class Show {
 
   // Relation - [shows] N : 1 [users]
   @ManyToOne((type) => User, (user) => user.shows, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'user_id' })
+  @JoinColumn({ name: 'user_id', referencedColumnName: 'id' })
   user: User;
 
   // Relation - [shows] 1 : N [schedules]
