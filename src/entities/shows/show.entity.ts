@@ -25,24 +25,52 @@ export class Show {
   @Column({ type: 'int', name: 'user_id', unsigned: true })
   userId: number;
 
+  /**
+   * 공연명
+   * @example "시카고"
+   */
   @Column({ type: 'varchar', unique: true, nullable: false })
   title: string;
 
+  /**
+   * 공연 설명
+   * @example "브로드웨이 역사상 가장 롱런하고 있는 미국 뮤지컬"
+   */
   @Column({ type: 'text', nullable: false })
   content: string;
 
+  /**
+   * 공연 카테고리
+   * @example "Musical"
+   */
   @Column({ type: 'enum', enum: ShowCategory, nullable: false })
   category: ShowCategory;
 
+  /**
+   * 공연 소요시간
+   * @example 200
+   */
   @Column({ type: 'int', nullable: false })
   runtime: number;
 
+  /**
+   * 공연 장소
+   * @example "서울시 구로구 경인로 662, 디큐브 링크아트센터"
+   */
   @Column({ type: 'varchar', nullable: false })
   location: string;
 
+  /**
+   * 공연 금액
+   * @example 30000
+   */
   @Column({ type: 'int', nullable: false })
   price: number;
 
+  /**
+   * 공연 총 좌석 수
+   * @example 1800
+   */
   @Column({ type: 'int', nullable: false })
   totalSeat: number;
 

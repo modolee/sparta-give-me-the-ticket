@@ -20,9 +20,17 @@ export class Schedule {
   @Column({ type: 'int', name: 'show_id', unsigned: true })
   showId: number;
 
+  /**
+   * 공연 날짜
+   * @example "2024-07-25"
+   */
   @Column({ type: 'date' })
   date: Date;
 
+  /**
+   * 공연 시간
+   * @example "14:30"
+   */
   @Column({ type: 'time' })
   time: string;
 

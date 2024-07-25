@@ -19,7 +19,7 @@ import { USER_BOOKMARK_MESSAGES } from 'src/commons/constants/users/user-bookmar
 import { AuthGuard } from '@nestjs/passport';
 import { Schedule } from 'src/entities/shows/schedule.entity';
 import { Show } from 'src/entities/shows/show.entity';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { UpdateShowDto } from './dto/update-show.dto';
 import { GetShowListDto } from './dto/get-show-list.dto';
 
@@ -33,6 +33,7 @@ export class ShowsController {
    * @Param createShowDto
    * @returns
    * */
+  @ApiBearerAuth()
   @Post()
   @UseGuards(AuthGuard('jwt'))
   async createShow(@Body() createShowDto: CreateShowDto, @Req() req: { user: User }) {
@@ -61,12 +62,18 @@ export class ShowsController {
 
   /**
    * 공연 수정
-   * @param showId
+   * @param showId, updateShowDto
    * @returns
    * */
   @Patch(':showId')
-  updateShow(@Param('showId') showId: number, @Body() updateShowDot: UpdateShowDto) {
-    return this.showsService.updateShow(+showId, updateShowDot);
+  @UseGuards(AuthGuard('jwt'))
+  updateShow(
+    @Param('showId') showId: number,
+    @Body() updateShowDto: UpdateShowDto,
+    @Req() req: { user: User }
+  ) {
+    const user = req.user;
+    return this.showsService.updateShow(+showId, updateShowDto, user);
   }
 
   /**

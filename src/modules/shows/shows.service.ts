@@ -98,7 +98,7 @@ export class ShowsService {
     });
     return {
       status: HttpStatus.CREATED,
-      message: SHOW_MESSAGES.GET_LIST.SUCCEED,
+      message: SHOW_MESSAGES.GET_LIST.SUCCEED.LIST,
       data: shows,
     };
   }
@@ -110,6 +110,7 @@ export class ShowsService {
       relations: { schedules: true },
     });
 
+    //공연 존재 여부 확인
     if (!show) {
       throw new NotFoundException(SHOW_MESSAGES.COMMON.NOT_FOUND);
     }
@@ -139,8 +140,67 @@ export class ShowsService {
   }
 
   /*공연 수정 */
-  async updateShow(showId: number, updateShowDot: UpdateShowDto) {
-    return;
+  async updateShow(showId: number, updateShowDto: UpdateShowDto, user: User) {
+    const show = await this.showRepository.findOne({
+      where: { id: showId },
+      relations: { schedules: true },
+    });
+
+    //공연 존재 여부 확인
+    if (!show) {
+      throw new NotFoundException(SHOW_MESSAGES.COMMON.NOT_FOUND);
+    }
+
+    //요청 바디가 비어있는지 확인
+    if (Object.keys(updateShowDto).length === 0) {
+      throw new BadRequestException(SHOW_MESSAGES.UPDATE.NO_BODY_DATE);
+    }
+
+    // 공연 업데이트
+    Object.assign(show, updateShowDto);
+
+    // 스케줄 업데이트
+    if (updateShowDto.schedules) {
+      // 스케줄 문자열로 변환
+      const existingSchedulesMap = new Map(
+        show.schedules.map((schedule) => [
+          `${schedule.date.toISOString().split('T')[0]}-${schedule.time}`,
+          schedule,
+        ])
+      );
+
+      //새로운 스케줄
+      const newSchedules = updateShowDto.schedules;
+
+      //새로운 스케줄을 기존 스케줄 업데이트 또는 추가
+      for (const { date, time } of newSchedules) {
+        const identifier = `${date}-${time}`;
+        const existingSchedule = existingSchedulesMap.get(identifier);
+
+        if (existingSchedule) {
+          // 기존 스케줄 업데이트
+          existingSchedule.date = new Date(date);
+          existingSchedule.time = time;
+        } else {
+          //새로운 스케줄 추가
+          const newSchedule = this.scheduleRepository.create({
+            date: new Date(date),
+            time,
+            show, //공연이랑 연결
+          });
+          show.schedules.push(newSchedule);
+        }
+      }
+    }
+
+    //변경 사항 저장
+    await this.showRepository.save(show);
+
+    //수정 완료
+    return {
+      status: HttpStatus.OK,
+      message: SHOW_MESSAGES.UPDATE.SUCCEED,
+    };
   }
 
   /*공연 삭제 */
