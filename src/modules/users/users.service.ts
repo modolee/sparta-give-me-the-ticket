@@ -11,7 +11,6 @@ import { PointLog } from 'src/entities/users/point-log.entity';
 import { PointType } from 'src/commons/types/users/point.type';
 import { ChargePointDto } from './dto/charge-point.dto';
 import { USER_MESSAGES } from 'src/commons/constants/users/user-message.constant';
-import { USER_CONSTANT } from 'src/commons/constants/users/user.constant';
 
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
@@ -50,7 +49,7 @@ export class UsersService {
 
   // 사용자 정보 수정
   async updateUser(id: number, userUpdateDto: UserUpdateDto) {
-    const { email, nickname, profileImg, currentPassword, changedPassword } = userUpdateDto;
+    const { nickname, profileImg, currentPassword } = userUpdateDto;
 
     // 사용자 조회
     const user = await this.userRepository.findOneBy({ id });
@@ -59,17 +58,11 @@ export class UsersService {
       throw new NotFoundException(USER_MESSAGES.USER.COMMON.NOT_FOUND);
     }
 
-    /** 이메일 수정 **/
-    if (email) {
-      const isExistingEmail = await this.userRepository.findOneBy({ email });
+    // 현재 비밀번호 확인
+    const isPasswordMatch = await bcrypt.compare(currentPassword, user.password);
 
-      // 다른 유저와 이메일 중복 시
-      if (isExistingEmail && isExistingEmail.id !== id) {
-        throw new ConflictException(USER_MESSAGES.USER.USERINFO.UPDATE.FAILURE.EMAIL.CONFLICT);
-      }
-
-      // 이메일 업데이트
-      user.email = email;
+    if (!isPasswordMatch) {
+      throw new ConflictException(USER_MESSAGES.USER.USERINFO.UPDATE.FAILURE.PASSWORD.MISMATCH);
     }
 
     /** 닉네임 수정 **/
@@ -90,23 +83,6 @@ export class UsersService {
       // 프로필 이미지 업데이트
       user.profileImg = profileImg;
     }
-
-    /** 비밀번호 수정 **/
-    // 현재 비밀번호 확인
-    const isPasswordMatch = await bcrypt.compare(currentPassword, user.password);
-
-    if (!isPasswordMatch) {
-      throw new ConflictException(USER_MESSAGES.USER.USERINFO.UPDATE.FAILURE.PASSWORD.MISMATCH);
-    }
-
-    // 변경된 비밀번호 해시화
-    const hashedPassword = await bcrypt.hash(
-      changedPassword,
-      USER_CONSTANT.COMMON.HASH_SALT_ROUNDS
-    );
-
-    // 비밀번호 업데이트
-    user.password = hashedPassword;
 
     const updateUser = await this.userRepository.save(user);
 
