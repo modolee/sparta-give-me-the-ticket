@@ -32,6 +32,14 @@ export const SHOW_MESSAGES = {
       REQUIRED: '공연 총 좌석 수를 입력해주세요.',
     },
 
+    DATE: {
+      REQUIRED: '공연 날짜를 입력해주세요.',
+    },
+
+    TIME: {
+      REQUIRED: '공연 시간을 입력해주세요.',
+    },
+
     NOT_FOUND: '공연이 존재하지 않습니다.',
   },
   CREATE: {

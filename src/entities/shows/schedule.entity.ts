@@ -24,7 +24,6 @@ export class Schedule {
   date: Date;
 
   @Column({ type: 'time' })
-  @IsMilitaryTime()
   time: string;
 
   @Column({ type: 'int' })
