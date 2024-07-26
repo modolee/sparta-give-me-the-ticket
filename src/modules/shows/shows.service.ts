@@ -23,6 +23,7 @@ import { UpdateShowDto } from './dto/update-show.dto';
 import { SHOW_MESSAGES } from 'src/commons/constants/shows/show-messages.constant';
 import { USER_MESSAGES } from 'src/commons/constants/users/user-message.constant';
 import { GetShowListDto } from './dto/get-show-list.dto';
+import { CreateTicketDto } from './dto/create-ticket-dto';
 
 @Injectable()
 export class ShowsService {
@@ -254,12 +255,18 @@ export class ShowsService {
     //remove 검색, delete는 id 값을 넘겨줘야한다.
   }
   /* 티켓 예매 */
-  async createTicket(showId: number, scheduleId: number, user: User) {
+  async createTicket(
+    showId: number,
+    createTicketDto: CreateTicketDto,
+    scheduleId: number,
+    user: User
+  ) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
+      const { scheduleId } = createTicketDto;
       // 공연이 있는지 확인합니다.
       const show = await queryRunner.manager.findOne(Show, {
         where: { id: showId },
@@ -270,32 +277,24 @@ export class ShowsService {
 
       // 스케줄이 있는지 확인합니다.
       const schedule = await queryRunner.manager.findOne(Schedule, {
-        where: { id: scheduleId, showId },
+        where: { id: scheduleId },
       });
       if (!schedule) {
-        throw new NotFoundException(SHOW_TICKET_MESSAGES.COMMON.SHOW.NOT_FOUND);
+        throw new NotFoundException(SHOW_TICKET_MESSAGES.COMMON.SCHEDULE.NOT_FOUND);
       }
 
+      //지정 좌석이 있는지 확인합니다.
       if (schedule.remainSeat < SHOW_TICKETS.COMMON.SEAT.UNSIGNED) {
         throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.SEAT.NOT_ENOUGH);
       }
 
-      const nowTime = new Date();
-      console.log('현재 시간:', format(nowTime, 'HH:mm:ss'));
-
-      // 공연 시간을 string에서 Date 객체로 변환 (현재 날짜에 시간만 설정)
-      const scheduleTimeString = schedule.time;
-      const [hours, minutes] = scheduleTimeString.split(':').map(Number);
-
-      // 현재 날짜에 공연 시간 설정
-      const showTime = set(new Date(), { hours, minutes, seconds: 0, milliseconds: 0 });
-      console.log('공연 시간:', format(showTime, 'HH:mm:ss'));
+      //date와 time을 하나의 showTime으로 연결합니다.
+      const showTime = `${String(schedule.date)}T${String(schedule.time)}`;
 
       // 공연 시간 기준 2시간 전
       const twoHoursBeforeShowTime = subHours(showTime, 2);
-      console.log('공연 시간 기준 2시간 전:', format(twoHoursBeforeShowTime, 'HH:mm:ss'));
-
-      if (nowTime <= twoHoursBeforeShowTime) {
+      const nowTime = new Date();
+      if (nowTime >= twoHoursBeforeShowTime) {
         throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.TIME.EXPIRED);
       }
 
@@ -312,6 +311,7 @@ export class ShowsService {
         showId: show.id,
         nickname: user.nickname,
         title: show.title,
+        time: schedule.time,
         runtime: show.runtime,
         date: schedule.date,
         location: show.location,
@@ -359,7 +359,7 @@ export class ShowsService {
       const showTime = new Date(schedule.time);
 
       // 공연 시간이 1시간 이전일 경우 환불하기 어렵다는 메시지 전달
-      if (showTime < oneHoursBefore) {
+      if (showTime > oneHoursBefore) {
         throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.REFUND.EXPIRED);
       }
 
