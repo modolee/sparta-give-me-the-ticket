@@ -31,6 +31,10 @@ export class Ticket {
   @Column({ name: 'show_id', type: 'int', unsigned: true })
   showId: number;
 
+  // 스케줄 엔티티 외래키 설정
+  @Column({ name: 'schedule_id', type: 'int', unsigned: true })
+  scheduleId: number;
+
   @Column({ type: 'varchar' })
   nickname: string;
 
