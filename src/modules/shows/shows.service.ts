@@ -373,13 +373,13 @@ export class ShowsService {
       }
 
       // 공연 시작 10일 전까지(마지노선) 전액 환불
-      if (nowTime >= tenDaysBeforeShow) {
+      if (nowTime <= tenDaysBeforeShow) {
         refundPoint = ticket.price;
       }
 
       //공연 시작 3일 전까지는 50% 환불 - 3일 전까지는 기본적으로 50프로 환불이 맞다.
-      else if (nowTime >= threeDaysBeforeShow) {
-        // 공연 예매 후 24시간 이내 전액 환불 - 3일 전까지는 전액 환불을 해주기로 했습니다.
+      else if (tenDaysBeforeShow < nowTime && nowTime <= threeDaysBeforeShow) {
+        // 공연 예매 후 24시간 이내 전액 환불
         if (bookingTime < oneDayAfterBooking) {
           refundPoint = ticket.price;
         } else {
@@ -388,9 +388,22 @@ export class ShowsService {
       }
 
       // 공연 날짜의 00시부터 공연 시작 전 1시간 까지는 10퍼센트 환불
-      else if (nowTime >= earlyTime && nowTime <= oneHoursBeforeShowTime) {
+      else if (earlyTime <= nowTime && nowTime <= oneHoursBeforeShowTime) {
         refundPoint = Math.floor(ticket.price * SHOW_TICKETS.COMMON.TICKET.PERCENT.TEN);
       }
+
+      console.log(nowTime);
+      console.log(bookingTime);
+      console.log(showTime);
+      console.log(oneDayAfterBooking);
+      console.log(tenDaysBeforeShow);
+      console.log(nowTime <= oneHoursBeforeShowTime);
+      console.log(nowTime <= tenDaysBeforeShow);
+      console.log(nowTime > threeDaysBeforeShow);
+      console.log(bookingTime < oneDayAfterBooking);
+      console.log(nowTime >= earlyTime && nowTime <= oneHoursBeforeShowTime);
+      console.log(bookingTime < oneDayAfterBooking);
+      console.log(refundPoint);
 
       // 티켓의 환불이 이미 됐을경우 메시지를 날립니다.
       if (ticket.status == 'REFUNDED') {
