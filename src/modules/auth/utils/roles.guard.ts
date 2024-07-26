@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
-import { Role } from 'src/modules/users/types/user-role.type';
+import { Role } from 'src/commons/types/users/user-role.type';
 
 /**
  * 역할 구분이 필요한 컨트롤러부분에 다음과 같이 작성

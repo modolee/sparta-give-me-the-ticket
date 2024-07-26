@@ -14,7 +14,7 @@ import { Bookmark } from './bookmark.entity';
 import { Show } from '../shows/show.entity';
 import { Ticket } from '../shows/ticket.entity';
 import { Trade } from '../trades/trade.entity';
-import { Role } from 'src/modules/users/types/user-role.type';
+import { Role } from 'src/commons/types/users/user-role.type';
 import { USER_CONSTANT } from 'src/commons/constants/users/user.constant';
 import { USER_MESSAGES } from 'src/commons/constants/users/user-message.constant';
 
