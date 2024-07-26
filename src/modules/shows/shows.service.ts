@@ -24,6 +24,7 @@ import { SHOW_MESSAGES } from 'src/commons/constants/shows/show-messages.constan
 import { GetShowListDto } from './dto/get-show-list.dto';
 import { CreateTicketDto } from './dto/create-ticket-dto';
 import { Schedule } from 'src/entities/shows/schedule.entity';
+import { SearchService } from './search/search.service';
 
 @Injectable()
 export class ShowsService {
@@ -31,7 +32,8 @@ export class ShowsService {
     @InjectRepository(Show) private showRepository: Repository<Show>,
     @InjectRepository(Bookmark) private bookmarkRepository: Repository<Bookmark>,
     @InjectRepository(Schedule) private scheduleRepository: Repository<Schedule>,
-    private dataSource: DataSource
+    private dataSource: DataSource,
+    private readonly searchService: SearchService
   ) {}
 
   /*공연 생성 */
@@ -86,16 +88,14 @@ export class ShowsService {
 
   /*공연 목록 조회 */
   async getShowList({ category, search }: GetShowListDto) {
-    const shows = await this.showRepository.find({
-      where: {
-        ...(category && { category }),
-        ...(search && { title: Like(`%${search}%`) }),
-      },
-    });
+    // searchService 사용해 검색
+    const { results, total } = await this.searchService.searchShows(category, search);
+
     return {
       status: HttpStatus.CREATED,
       message: SHOW_MESSAGES.GET_LIST.SUCCEED.LIST,
-      data: shows,
+      data: results,
+      total,
     };
   }
 

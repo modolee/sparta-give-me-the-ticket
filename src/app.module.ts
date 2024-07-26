@@ -11,6 +11,7 @@ import { ShowsModule } from './modules/shows/shows.module';
 import { TradesModule } from './modules/trades/trades.module';
 import { ImagesModule } from './modules/images/images.module';
 import { RedisModule } from './modules/redis/redis.module';
+import { SearchModule } from './modules/shows/search/search.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { RedisModule } from './modules/redis/redis.module';
     TradesModule,
     ImagesModule,
     RedisModule,
+    SearchModule,
   ],
   controllers: [AppController],
   providers: [AppService],
