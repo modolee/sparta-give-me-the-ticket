@@ -98,9 +98,10 @@ export class ShowsController {
    * @param showId
    * @returns
    */
+  @Roles(Role.USER)
+  @UseGuards(RolesGuard)
   @Post(':showId/bookmark')
   @HttpCode(HttpStatus.CREATED)
-  @UseGuards(AuthGuard('jwt'))
   async createBookmark(@Param('showId') showId: number, @Req() req: any) {
     const user: User = req.user;
     await this.showsService.createBookmark(showId, user);
@@ -115,6 +116,8 @@ export class ShowsController {
    * @param showId
    * @returns
    */
+  @Roles(Role.USER)
+  @UseGuards(RolesGuard)
   @Delete(':showId/bookmark/:bookmarkId')
   @HttpCode(HttpStatus.OK)
   @UseGuards(AuthGuard('jwt'))
@@ -130,17 +133,18 @@ export class ShowsController {
    * @param showId
    * @returns
    */
+  @Roles(Role.USER)
+  @UseGuards(RolesGuard)
   @Post(':showId/ticket')
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(AuthGuard('jwt'))
   async createTicket(
     @Param('showId') showId: number,
-    scheduleId: number,
     @Body() createTicketDto: CreateTicketDto,
     @Req() req: any
   ) {
     const user: User = req.user;
-    return this.showsService.createTicket(showId, createTicketDto, scheduleId, user);
+    return this.showsService.createTicket(showId, createTicketDto, user);
   }
   /**
    * 티켓 환불
@@ -148,16 +152,17 @@ export class ShowsController {
    * @param ticketId
    * @returns
    */
+  @Roles(Role.USER)
+  @UseGuards(RolesGuard)
   @Delete(':showId/ticket/:ticketId')
   @HttpCode(HttpStatus.OK)
   @UseGuards(AuthGuard('jwt'))
   async refundTicket(
     @Param('showId') showId: number,
     @Param('ticketId') ticketId: number,
-    @Query('scheduleId') scheduleId: number,
     @Req() req: any
   ) {
-    await this.showsService.refundTicket(showId, ticketId, scheduleId, req.user);
+    await this.showsService.refundTicket(showId, ticketId, req.user);
     return { status: HttpStatus.OK };
   }
 }
