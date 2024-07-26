@@ -26,6 +26,7 @@ import { CreateTicketDto } from './dto/create-ticket-dto';
 import { RolesGuard } from '../auth/utils/roles.guard';
 import { Roles } from '../auth/utils/roles.decorator';
 import { Role } from 'src/commons/types/users/user-role.type';
+import { SHOW_TICKET_MESSAGES } from 'src/commons/constants/shows/show-ticket-messages.constant';
 
 @ApiTags('공연')
 @Controller('shows')
@@ -135,6 +136,7 @@ export class ShowsController {
    * @param showId
    * @returns
    */
+  @ApiBearerAuth()
   @Roles(Role.USER)
   @UseGuards(RolesGuard)
   @Post(':showId/ticket')
@@ -154,6 +156,7 @@ export class ShowsController {
    * @param ticketId
    * @returns
    */
+  @ApiBearerAuth()
   @Roles(Role.USER)
   @UseGuards(RolesGuard)
   @Delete(':showId/ticket/:ticketId')
@@ -165,6 +168,6 @@ export class ShowsController {
     @Req() req: any
   ) {
     await this.showsService.refundTicket(showId, ticketId, req.user);
-    return { status: HttpStatus.OK };
+    return { status: HttpStatus.OK, message: SHOW_TICKET_MESSAGES.COMMON.REFUND.SUCCESS };
   }
 }
