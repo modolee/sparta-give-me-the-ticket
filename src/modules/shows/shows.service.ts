@@ -285,7 +285,7 @@ export class ShowsService {
       }
 
       //지정 좌석이 있는지 확인합니다.
-      if (schedule.remainSeat < SHOW_TICKETS.COMMON.SEAT.UNSIGNED) {
+      if (schedule.remainSeat <= SHOW_TICKETS.COMMON.SEAT.UNSIGNED) {
         throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.SEAT.NOT_ENOUGH);
       }
 
@@ -401,7 +401,7 @@ export class ShowsService {
       else if (isAfter(nowTime, addHours(bookingTime, 24))) {
         refundPoint = ticket.price;
       } else {
-        refundPoint = 0; // 전액 환불을 위한 조건이 없는 경우 환불 없음
+        throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.REFUND.NOT_ALLOWED);
       }
 
       // 티켓 상태를 환불로 업데이트를 합니다.
@@ -409,11 +409,8 @@ export class ShowsService {
       await queryRunner.manager.save(Ticket, ticket);
 
       user.point += refundPoint;
-      console.log(user.point);
+
       await queryRunner.manager.save(User, user);
-      console.log(typeof Schedule);
-      console.log(Schedule);
-      console.log(schedule);
 
       let refundSeat = schedule.remainSeat;
       // 좌석 증가 처리
