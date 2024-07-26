@@ -17,9 +17,11 @@ import { Trade } from '../trades/trade.entity';
 import { Role } from 'src/commons/types/users/user-role.type';
 import { USER_CONSTANT } from 'src/commons/constants/users/user.constant';
 import { USER_MESSAGES } from 'src/commons/constants/users/user-message.constant';
+import { Factory } from 'nestjs-seeder';
 
 @Entity('users')
 export class User {
+  @Factory((faker) => faker.number.int({ min: 1, max: 20 }))
   @PrimaryGeneratedColumn({ unsigned: true })
   id: number;
 
@@ -27,6 +29,7 @@ export class User {
    * 이메일
    * @example "modify@sample.com"
    */
+  @Factory((faker) => faker.internet.email())
   @IsNotEmpty({ message: USER_MESSAGES.USER.USERINFO.UPDATE.FAILURE.EMAIL.EMPTY })
   @IsEmail()
   @Column({ type: 'varchar', unique: true })
@@ -36,6 +39,7 @@ export class User {
    * 닉네임
    * @example "Charlie"
    */
+  @Factory((faker) => faker.internet.userName())
   @IsNotEmpty({ message: USER_MESSAGES.USER.USERINFO.UPDATE.FAILURE.NICKNAME.EMPTY })
   @Column({ type: 'varchar', unique: true })
   nickname: string;
@@ -44,6 +48,7 @@ export class User {
    * 비밀번호
    * @example "Test1234!"
    */
+  @Factory((faker) => faker.internet.password({ length: 10 }))
   @IsNotEmpty({ message: USER_MESSAGES.USER.USERINFO.UPDATE.FAILURE.PASSWORD.EMPTY })
   @IsStrongPassword(
     {
@@ -55,9 +60,13 @@ export class User {
   @Column({ type: 'varchar', select: false })
   password: string;
 
+  @Factory((faker) => faker.finance.ethereumAddress())
   @Column({ type: 'varchar' })
   refreshToken: string;
 
+  @Factory((faker) =>
+    faker.number.int({ min: USER_CONSTANT.POINT.DEFAULT, max: USER_CONSTANT.POINT.DEFAULT })
+  )
   @IsNotEmpty()
   @Column({ type: 'int', default: USER_CONSTANT.POINT.DEFAULT })
   point: number;
@@ -66,9 +75,14 @@ export class User {
    * 프로필 이미지
    * @example "https://example.com/profile.jpg"
    */
+  @Factory((faker) => faker.image.url())
   @Column({ type: 'varchar' })
   profileImg: string;
 
+  @Factory((faker) => {
+    const categories = Object.values(Role);
+    return faker.helpers.arrayElement(categories);
+  })
   @Column({ type: 'enum', enum: Role, default: Role.USER })
   role: Role;
 
