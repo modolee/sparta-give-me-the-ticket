@@ -8,10 +8,10 @@ export class ChargePointDto {
    */
   @IsNumber()
   @IsPositive({
-    message: USER_MESSAGES.USER.POINT_CHARGE.FAILURE.POSITIVE,
+    message: USER_MESSAGES.USER.POINT.CHARGE.FAILURE.POSITIVE,
   })
   @IsNotEmpty({
-    message: USER_MESSAGES.USER.POINT_CHARGE.FAILURE.EMPTY,
+    message: USER_MESSAGES.USER.POINT.CHARGE.FAILURE.EMPTY,
   })
   amount: number;
 }

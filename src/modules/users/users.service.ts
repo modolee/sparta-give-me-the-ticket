@@ -28,8 +28,20 @@ export class UsersService {
   ) {}
 
   // 포인트 내역 조회
-  async getPointLog() {
-    return;
+  async getPointLog(id: number) {
+    try {
+      const user = await this.userRepository.findOneBy({ id });
+
+      if (!user) {
+        throw new NotFoundException(USER_MESSAGES.USER.COMMON.NOT_FOUND);
+      }
+
+      const pointLog = await this.pointLogRepository.find({ where: { userId: id } });
+
+      return pointLog;
+    } catch (err) {
+      throw new InternalServerErrorException(USER_MESSAGES.USER.POINT.GET_LOG.FAILURE);
+    }
   }
 
   // 예매 목록 조회
@@ -119,7 +131,7 @@ export class UsersService {
       pointLog.user = user;
       pointLog.userId = user.id;
       pointLog.price = amount;
-      pointLog.description = USER_MESSAGES.USER.POINT_CHARGE.DESCRIPTION;
+      pointLog.description = USER_MESSAGES.USER.POINT.CHARGE.DESCRIPTION;
       pointLog.type = PointType.DEPOSIT;
 
       // 포인트 로그 업데이트
@@ -136,7 +148,7 @@ export class UsersService {
       await queryRunner.rollbackTransaction();
       await queryRunner.release();
 
-      throw new InternalServerErrorException(USER_MESSAGES.USER.POINT_CHARGE.FAILURE.FAIL);
+      throw new InternalServerErrorException(USER_MESSAGES.USER.POINT.CHARGE.FAILURE.FAIL);
     }
   }
 
