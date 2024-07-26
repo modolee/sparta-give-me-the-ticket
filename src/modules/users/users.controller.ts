@@ -24,10 +24,20 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 export class UsersController {
   constructor(private readonly userService: UsersService) {}
 
-  // 포인트 내역 조회
+  /**
+   * 포인트 내역 조회
+   * @param req
+   * @returns
+   */
   @Get('/me/point')
-  async getPointLog() {
-    return await this.userService.getPointLog();
+  async getPointLog(@Req() req: any) {
+    const getPointLog = await this.userService.getPointLog(req.user.id);
+
+    return {
+      statusCode: HttpStatus.OK,
+      message: USER_MESSAGES.USER.POINT.GET_LOG.SUCCESS,
+      getPointLog,
+    };
   }
 
   // 예매 목록 조회
@@ -77,7 +87,7 @@ export class UsersController {
 
     return {
       statusCode: HttpStatus.OK,
-      message: USER_MESSAGES.USER.POINT_CHARGE.SUCCESS,
+      message: USER_MESSAGES.USER.POINT.CHARGE.SUCCESS,
       updateUserPoint,
     };
   }
