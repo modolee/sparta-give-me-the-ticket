@@ -25,5 +25,6 @@ export const typeOrmModuleOptions: TypeOrmModuleAsyncOptions = {
     entities: [Show, User, PointLog, Bookmark, Ticket, Trade, TradeLog, Schedule, Image],
     synchronize: ConfigService.get('DB_SYNC'),
     namingStrategy: new SnakeNamingStrategy(),
+    logging: true,
   }),
 };

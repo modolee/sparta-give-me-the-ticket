@@ -8,11 +8,16 @@ import {
   Patch,
   Post,
   ValidationPipe,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { TradesService } from './trades.service';
 import { update } from 'lodash';
 import { CreateTradeDto } from './dto/create-trade.dto';
 import { UpdateTradeDto } from './dto/update-trade.dto';
+import { User } from 'src/entities/users/user.entity';
+import { number } from 'joi';
 
 @Controller('trades')
 export class TradesController {
@@ -32,8 +37,10 @@ export class TradesController {
 
   //중고 거래 생성
   @Post()
-  async createTrade(@Body() createTradeDto: CreateTradeDto, sellerId) {
-    return await this.tradesService.createTrade(createTradeDto, sellerId);
+  @UseGuards(AuthGuard('jwt'))
+  async createTrade(@Body() createTradeDto: CreateTradeDto, @Req() req: { user: User }) {
+    const user = req.user;
+    return await this.tradesService.createTrade(createTradeDto, user.id);
   }
 
   //중고 거래 수정
@@ -50,13 +57,15 @@ export class TradesController {
 
   //중고 거래 구매
   @Post('/:tradeId')
-  async createTicket(@Param('tradeId', ParseIntPipe) tradeId) {
-    return await this.tradesService.createTicket(tradeId);
+  @UseGuards(AuthGuard('jwt'))
+  async createTicket(@Param('tradeId', ParseIntPipe) tradeId, req: { user: User }) {
+    const user = req.user;
+    return await this.tradesService.createTicket(tradeId, user.id);
   }
 
   //테스트 메서드
   @Get('test')
-  async test(@Body() ticketId: number) {
+  async test(@Body('ticketId') ticketId: number) {
     return await this.tradesService.test(ticketId);
   }
 }
