@@ -22,6 +22,7 @@ import { DeleteBookmarkDto } from './dto/delete-bookmark.dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { UpdateShowDto } from './dto/update-show.dto';
 import { GetShowListDto } from './dto/get-show-list.dto';
+import { CreateTicketDto } from './dto/create-ticket-dto';
 
 @ApiTags('공연')
 @Controller('shows')
@@ -130,9 +131,14 @@ export class ShowsController {
   @Post(':showId/ticket')
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(AuthGuard('jwt'))
-  async createTicket(@Param('showId') showId: number, scheduleId: number, @Req() req: any) {
+  async createTicket(
+    @Param('showId') showId: number,
+    scheduleId: number,
+    @Body() createTicketDto: CreateTicketDto,
+    @Req() req: any
+  ) {
     const user: User = req.user;
-    return this.showsService.createTicket(showId, scheduleId, user);
+    return this.showsService.createTicket(showId, createTicketDto, scheduleId, user);
   }
   /**
    * 티켓 환불
@@ -146,10 +152,10 @@ export class ShowsController {
   async refundTicket(
     @Param('showId') showId: number,
     @Param('ticketId') ticketId: number,
-    schedule: Schedule,
-    user: User
+    @Query('scheduleId') scheduleId: number,
+    @Req() req: any
   ) {
-    await this.showsService.refundTicket(showId, ticketId, schedule, user);
+    await this.showsService.refundTicket(showId, ticketId, scheduleId, req.user);
     return { status: HttpStatus.OK };
   }
 }

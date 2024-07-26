@@ -8,10 +8,12 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  OneToMany,
 } from 'typeorm';
 import { Show } from './show.entity';
 import { Factory } from 'nestjs-seeder';
 import { randomInt } from 'crypto';
+import { Ticket } from './ticket.entity';
 
 @Entity({ name: 'schedules' })
 export class Schedule {
@@ -65,4 +67,8 @@ export class Schedule {
   @ManyToOne((type) => Show, (show) => show.schedules, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'show_id' })
   show: Show;
+
+  // Relation - [schedules] 1 : N [tickets]
+  @OneToMany((type) => Ticket, (ticket) => ticket.schedule, { cascade: true })
+  tickets: Ticket[];
 }
