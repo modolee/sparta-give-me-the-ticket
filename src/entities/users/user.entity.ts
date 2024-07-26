@@ -29,7 +29,7 @@ export class User {
    */
   @IsNotEmpty({ message: USER_MESSAGES.USER.USERINFO.UPDATE.FAILURE.EMAIL.EMPTY })
   @IsEmail()
-  @Column({ unique: true })
+  @Column({ type: 'varchar', unique: true })
   email: string;
 
   /**
@@ -37,7 +37,7 @@ export class User {
    * @example "Charlie"
    */
   @IsNotEmpty({ message: USER_MESSAGES.USER.USERINFO.UPDATE.FAILURE.NICKNAME.EMPTY })
-  @Column({ unique: true })
+  @Column({ type: 'varchar', unique: true })
   nickname: string;
 
   /**
@@ -52,24 +52,24 @@ export class User {
     },
     { message: USER_MESSAGES.USER.USERINFO.UPDATE.FAILURE.PASSWORD.WEAK }
   )
-  @Column({ select: false })
+  @Column({ type: 'varchar', select: false })
   password: string;
 
-  @Column()
+  @Column({ type: 'varchar' })
   refreshToken: string;
 
   @IsNotEmpty()
-  @Column({ default: USER_CONSTANT.POINT.DEFAULT })
+  @Column({ type: 'int', default: USER_CONSTANT.POINT.DEFAULT })
   point: number;
 
   /**
    * 프로필 이미지
    * @example "https://example.com/profile.jpg"
    */
-  @Column()
+  @Column({ type: 'varchar' })
   profileImg: string;
 
-  @Column({ default: 'USER' })
+  @Column({ type: 'enum', enum: Role, default: Role.USER })
   role: Role;
 
   @CreateDateColumn()
