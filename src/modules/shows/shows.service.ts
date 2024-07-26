@@ -18,7 +18,7 @@ import { Schedule } from 'src/entities/shows/schedule.entity';
 import { SHOW_TICKETS } from 'src/commons/constants/shows/show-tickets.constant';
 import { TicketStatus } from 'src/commons/types/shows/ticket.type';
 import { DeleteBookmarkDto } from './dto/delete-bookmark.dto';
-import { format, isBefore, parse, set, subHours } from 'date-fns';
+import { format, set, subHours } from 'date-fns';
 import { UpdateShowDto } from './dto/update-show.dto';
 import { SHOW_MESSAGES } from 'src/commons/constants/shows/show-messages.constant';
 import { USER_MESSAGES } from 'src/commons/constants/users/user-message.constant';
@@ -28,36 +28,28 @@ import { GetShowListDto } from './dto/get-show-list.dto';
 export class ShowsService {
   constructor(
     @InjectRepository(Show) private showRepository: Repository<Show>,
-    @InjectRepository(User) private userRepository: Repository<User>,
     @InjectRepository(Bookmark) private bookmarkRepository: Repository<Bookmark>,
     @InjectRepository(Schedule) private scheduleRepository: Repository<Schedule>,
     private dataSource: DataSource
   ) {}
 
   /*공연 생성 */
-  async createShow(createShowDto: CreateShowDto, userId: number) {
+  async createShow(createShowDto: CreateShowDto, req: any) {
     const { schedules, ...restOfShow } = createShowDto;
 
     //공연 명 기준으로 이미 있는 공연인지 확인
-    const existedShow = await this.showRepository.findOneBy({
-      title: createShowDto.title,
+    const existedShow = await this.showRepository.findOne({
+      where: { title: createShowDto.title, deletedAt: null },
     });
 
     if (existedShow) {
       throw new ConflictException(SHOW_MESSAGES.COMMON.TITLE.EXISTED);
     }
 
-    //사용자 정보 가져오기
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-
-    if (!user) {
-      throw new NotFoundException(USER_MESSAGES.USER.COMMON.NOT_FOUND);
-    }
-
     //공연 생성
     const show = await this.showRepository.create({
       ...restOfShow,
-      userId: user.id,
+      userId: req.user.id,
       schedules: schedules.map((schedule) => ({
         ...schedule,
       })),
@@ -142,7 +134,7 @@ export class ShowsService {
   }
 
   /*공연 수정 */
-  async updateShow(showId: number, updateShowDto: UpdateShowDto, user: User) {
+  async updateShow(showId: number, updateShowDto: UpdateShowDto, req: any) {
     const show = await this.showRepository.findOne({
       where: { id: showId },
       relations: { schedules: true },
@@ -150,6 +142,8 @@ export class ShowsService {
 
     //공연 존재 여부 확인
     if (!show) {
+      console.log('showId: ', show.id);
+
       throw new NotFoundException(SHOW_MESSAGES.COMMON.NOT_FOUND);
     }
 
@@ -163,36 +157,60 @@ export class ShowsService {
 
     // 스케줄 업데이트
     if (updateShowDto.schedules) {
-      // 스케줄 문자열로 변환
+      // 기존 스케줄 문자열로 변환
       const existingSchedulesMap = new Map(
         show.schedules.map((schedule) => [
-          `${schedule.date.toISOString().split('T')[0]}-${schedule.time}`,
+          `${new Date(schedule.date).toISOString().split('T')[0]}-${schedule.time}`,
           schedule,
         ])
       );
 
-      //새로운 스케줄
+      // 새로 입력받은 스케줄
       const newSchedules = updateShowDto.schedules;
+      console.log('새로운 스케줄:', newSchedules);
+      console.log('show: ', show);
 
-      //새로운 스케줄을 기존 스케줄 업데이트 또는 추가
-      for (const { date, time } of newSchedules) {
-        const identifier = `${date}-${time}`;
-        const existingSchedule = existingSchedulesMap.get(identifier);
+      // 기존 스케줄 중 새로운 스케줄에 포함되지 않은 것들을 필터링하여 삭제할 목록을 생성
+      const schedulesToDelete = show.schedules.filter((schedule) => {
+        const identifier = `${new Date(schedule.date).toISOString().split('T')[0]}-${schedule.time}`;
+        return !newSchedules.some(
+          (newSchedule) => `${newSchedule.date}-${newSchedule.time}` === identifier
+        );
+      });
 
-        if (existingSchedule) {
-          // 기존 스케줄 업데이트
-          existingSchedule.date = new Date(date);
-          existingSchedule.time = time;
-        } else {
-          //새로운 스케줄 추가
-          const newSchedule = this.scheduleRepository.create({
-            date: new Date(date),
-            time,
-            show, //공연이랑 연결
-          });
-          show.schedules.push(newSchedule);
-        }
-      }
+      // 삭제할 스케줄 업데이트
+      schedulesToDelete.forEach((schedule) => {
+        schedule.deletedAt = new Date();
+      });
+
+      // 삭제된 스케줄을 데이터베이스에 저장
+      await this.scheduleRepository.save(schedulesToDelete);
+
+      // 새로운 스케줄을 기존 스케줄과 비교
+      await Promise.all(
+        newSchedules.map(async ({ date, time }) => {
+          const identifier = `${date}-${time}`;
+          const existingSchedule = existingSchedulesMap.get(identifier);
+
+          if (existingSchedule) {
+            // 기존 스케줄 업데이트
+            existingSchedule.date = new Date(date);
+            existingSchedule.time = time;
+            existingSchedule.deletedAt = null;
+          } else {
+            // 새로운 스케줄 추가
+            console.log('새로운 스케줄 추가');
+            const newSchedule = this.scheduleRepository.create({
+              date: new Date(date),
+              time,
+              show,
+            });
+            console.log('showId: ', show.id);
+            console.log('newSchedule:', newSchedule);
+            await this.scheduleRepository.save(newSchedule);
+          }
+        })
+      );
     }
 
     //변경 사항 저장
@@ -206,8 +224,34 @@ export class ShowsService {
   }
 
   /*공연 삭제 */
-  async deleteShow(showId: number) {
-    return;
+  async deleteShow(showId: number, req: any) {
+    const show = await this.showRepository.findOne({
+      where: { id: showId },
+      relations: { schedules: true },
+    });
+
+    //공연 존재 여부 확인
+    if (!show) {
+      throw new NotFoundException(SHOW_MESSAGES.COMMON.NOT_FOUND);
+    }
+
+    //공연 삭제
+    show.deletedAt = new Date();
+
+    //스케줄 삭제
+    show.schedules.forEach((schedule) => {
+      schedule.deletedAt = new Date();
+    });
+
+    //DB에 저장
+    await this.scheduleRepository.save(show.schedules);
+
+    await this.showRepository.save(show);
+
+    return {
+      status: HttpStatus.OK,
+      message: SHOW_MESSAGES.DELETE.SUCCEED,
+    };
   }
 
   /*공연 찜하기 생성 */

@@ -31,14 +31,14 @@ export class ShowsController {
   /**
    *  공연 생성
    * @Param createShowDto
+   * @param req
    * @returns
    * */
   @ApiBearerAuth()
   @Post()
   @UseGuards(AuthGuard('jwt'))
-  async createShow(@Body() createShowDto: CreateShowDto, @Req() req: { user: User }) {
-    const user = req.user;
-    return await this.showsService.createShow(createShowDto, user.id);
+  async createShow(@Body() createShowDto: CreateShowDto, @Req() req: any) {
+    return await this.showsService.createShow(createShowDto, req);
   }
 
   /**
@@ -46,8 +46,8 @@ export class ShowsController {
    * @returns
    * */
   @Get()
-  getShowList(@Query() getShowListDto: GetShowListDto) {
-    return this.showsService.getShowList(getShowListDto);
+  async getShowList(@Query() getShowListDto: GetShowListDto) {
+    return await this.showsService.getShowList(getShowListDto);
   }
 
   /**
@@ -56,24 +56,26 @@ export class ShowsController {
    * @returns
    * */
   @Get(':showId')
-  getShow(@Param('showId') showId: number) {
-    return this.showsService.getShow(+showId);
+  async getShow(@Param('showId') showId: number) {
+    return await this.showsService.getShow(+showId);
   }
 
   /**
    * 공연 수정
-   * @param showId, updateShowDto
+   * @param showId
+   * @param updateShowDto
+   * @param req
    * @returns
    * */
+  @ApiBearerAuth()
   @Patch(':showId')
   @UseGuards(AuthGuard('jwt'))
-  updateShow(
+  async updateShow(
     @Param('showId') showId: number,
     @Body() updateShowDto: UpdateShowDto,
-    @Req() req: { user: User }
+    @Req() req: any
   ) {
-    const user = req.user;
-    return this.showsService.updateShow(+showId, updateShowDto, user);
+    return await this.showsService.updateShow(+showId, updateShowDto, req);
   }
 
   /**
@@ -81,9 +83,11 @@ export class ShowsController {
    * @param showId
    * @returns
    * */
+  @ApiBearerAuth()
   @Delete(':showId')
-  deleteShow(@Param('showId') showId: number) {
-    return this.showsService.deleteShow(+showId);
+  @UseGuards(AuthGuard('jwt'))
+  async deleteShow(@Param('showId') showId: number, @Req() req: any) {
+    return await this.showsService.deleteShow(+showId, req);
   }
 
   /**

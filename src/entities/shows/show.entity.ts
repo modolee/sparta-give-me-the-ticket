@@ -33,12 +33,12 @@ export class Show {
    * @example "시카고"
    */
   @Factory((faker) => faker.lorem.words(3))
-  @Column({ type: 'varchar', unique: true, nullable: false })
+  @Column({ type: 'varchar', nullable: false })
   title: string;
 
   /**
    * 공연 설명
-   * @example "브로드웨이 역사상 가장 롱런하고 있는 미국 뮤지컬"
+   * @example "브로드웨이 역사상 가장 롱런하고 있는 미국 뮤지컬으로 서울 마지막 공연입니다."
    */
   @Factory((faker) => faker.lorem.words(10))
   @Column({ type: 'text', nullable: false })
