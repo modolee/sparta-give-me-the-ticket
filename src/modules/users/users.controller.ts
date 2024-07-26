@@ -10,17 +10,21 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { RolesGuard } from '../auth/utils/roles.guard';
+import { Roles } from '../auth/utils/roles.decorator';
+import { Role } from 'src/commons/types/users/user-role.type';
 
 import { UsersService } from './users.service';
 import { UserUpdateDto } from './dto/user-update.dto';
 import { ChargePointDto } from './dto/charge-point.dto';
 import { USER_MESSAGES } from 'src/commons/constants/users/user-message.constant';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { USER_BOOKMARK_MESSAGES } from 'src/commons/constants/users/user-bookmark-messages.constant';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('사용자')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@Roles(Role.USER)
 @Controller('users')
 export class UsersController {
   constructor(private readonly userService: UsersService) {}
