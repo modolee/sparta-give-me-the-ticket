@@ -10,16 +10,21 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { RolesGuard } from '../auth/utils/roles.guard';
+import { Roles } from '../auth/utils/roles.decorator';
+import { Role } from 'src/commons/types/users/user-role.type';
 
 import { UsersService } from './users.service';
 import { UserUpdateDto } from './dto/user-update.dto';
 import { ChargePointDto } from './dto/charge-point.dto';
 import { USER_MESSAGES } from 'src/commons/constants/users/user-message.constant';
+import { USER_BOOKMARK_MESSAGES } from 'src/commons/constants/users/user-bookmark-messages.constant';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('사용자')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@Roles(Role.USER)
 @Controller('users')
 export class UsersController {
   constructor(private readonly userService: UsersService) {}
@@ -46,10 +51,20 @@ export class UsersController {
     return await this.userService.getTicketList();
   }
 
-  // 북마크 목록 조회
+  /**
+   * 북마크 목록 조회
+   * @param req
+   * @returns
+   */
   @Get('/me/bookmark')
-  async getBookmarkList() {
-    return await this.userService.getBookmarkList();
+  async getBookmarkList(@Req() req: any) {
+    const getBookmarkList = await this.userService.getBookmarkList(req.user.id);
+
+    return {
+      statusCode: HttpStatus.OK,
+      message: USER_BOOKMARK_MESSAGES.COMMON.BOOKMARK.GET_LIST.SUCCESS,
+      getBookmarkList,
+    };
   }
 
   // 거래 내역 조회

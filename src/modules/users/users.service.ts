@@ -11,9 +11,11 @@ import { PointLog } from 'src/entities/users/point-log.entity';
 import { PointType } from 'src/commons/types/users/point.type';
 import { ChargePointDto } from './dto/charge-point.dto';
 import { USER_MESSAGES } from 'src/commons/constants/users/user-message.constant';
+import { USER_BOOKMARK_MESSAGES } from 'src/commons/constants/users/user-bookmark-messages.constant';
 
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
+import { Bookmark } from 'src/entities/users/bookmark.entity';
 
 @Injectable()
 export class UsersService {
@@ -24,7 +26,9 @@ export class UsersService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     @InjectRepository(PointLog)
-    private readonly pointLogRepository: Repository<PointLog>
+    private readonly pointLogRepository: Repository<PointLog>,
+    @InjectRepository(Bookmark)
+    private readonly bookmarkRepository: Repository<Bookmark>
   ) {}
 
   // 포인트 내역 조회
@@ -44,8 +48,16 @@ export class UsersService {
   }
 
   // 북마크 목록 조회
-  async getBookmarkList() {
-    return;
+  async getBookmarkList(id: number) {
+    try {
+      const bookmark = await this.bookmarkRepository.find({ where: { userId: id } });
+
+      return bookmark;
+    } catch (err) {
+      throw new InternalServerErrorException(
+        USER_BOOKMARK_MESSAGES.COMMON.BOOKMARK.GET_LIST.FAILURE
+      );
+    }
   }
 
   // 거래 내역 조회
