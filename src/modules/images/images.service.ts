@@ -47,12 +47,14 @@ export class ImagesService {
   }
 
   // 사용자가 입력한 이미지 데이터를 받아서 S3에 전달 (이미지 업로드)
-  async uploadImage(files: Express.Multer.File[]) {
+  async uploadImage(files: Express.Multer.File[], maxFilesLength: number) {
     if (files.length === 0) {
       throw new BadRequestException('이미지를 입력해 주세요.');
     }
 
-    console.log('@@@@@@@@@@@@@@@');
+    if (files.length > maxFilesLength) {
+      throw new BadRequestException(`${maxFilesLength}장 이하로 업로드 가능합니다.`);
+    }
 
     const allowedExtensions = ['.png', '.jpg', '.jpeg', '.bmp', '.gif'];
 
