@@ -14,6 +14,7 @@ import { Show } from './show.entity';
 import { Trade } from '../trades/trade.entity';
 import { TicketStatus } from '../../commons/types/shows/ticket.type';
 import { IsMilitaryTime } from 'class-validator';
+import { Schedule } from './schedule.entity';
 
 @Entity({
   name: 'tickets',
@@ -49,7 +50,7 @@ export class Ticket {
   @Column({ type: 'varchar' })
   location: string;
 
-  // 자유석 기준 가격
+  // 원가
   @Column({ type: 'int' })
   price: number;
 
@@ -82,4 +83,9 @@ export class Ticket {
   @ManyToOne(() => User, (user) => user.tickets, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;
+
+  // Relation - [schedules] N : 1 [shows]
+  @ManyToOne(() => Schedule, (schedule) => schedule.tickets, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'schedule_id' })
+  schedule: Schedule;
 }
