@@ -392,19 +392,6 @@ export class ShowsService {
         refundPoint = Math.floor(ticket.price * SHOW_TICKETS.COMMON.TICKET.PERCENT.TEN);
       }
 
-      console.log(nowTime);
-      console.log(bookingTime);
-      console.log(showTime);
-      console.log(oneDayAfterBooking);
-      console.log(tenDaysBeforeShow);
-      console.log(nowTime <= oneHoursBeforeShowTime);
-      console.log(nowTime <= tenDaysBeforeShow);
-      console.log(nowTime > threeDaysBeforeShow);
-      console.log(bookingTime < oneDayAfterBooking);
-      console.log(nowTime >= earlyTime && nowTime <= oneHoursBeforeShowTime);
-      console.log(bookingTime < oneDayAfterBooking);
-      console.log(refundPoint);
-
       // 티켓의 환불이 이미 됐을경우 메시지를 날립니다.
       if (ticket.status == 'REFUNDED') {
         throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.REFUND.ALREADY_REFUNDED);
