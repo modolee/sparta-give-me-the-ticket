@@ -148,10 +148,10 @@ export class ShowsController {
   async refundTicket(
     @Param('showId') showId: number,
     @Param('ticketId') ticketId: number,
-    schedule: Schedule,
-    user: User
+    @Query('scheduleId') scheduleId: number,
+    @Req() req: any
   ) {
-    await this.showsService.refundTicket(showId, ticketId, schedule, user);
+    await this.showsService.refundTicket(showId, ticketId, scheduleId, req.user);
     return { status: HttpStatus.OK };
   }
 }
