@@ -30,12 +30,6 @@ export class UsersService {
   // 포인트 내역 조회
   async getPointLog(id: number) {
     try {
-      const user = await this.userRepository.findOneBy({ id });
-
-      if (!user) {
-        throw new NotFoundException(USER_MESSAGES.USER.COMMON.NOT_FOUND);
-      }
-
       const pointLog = await this.pointLogRepository.find({ where: { userId: id } });
 
       return pointLog;
@@ -70,7 +64,7 @@ export class UsersService {
     });
 
     if (!user) {
-      throw new NotFoundException(USER_MESSAGES.USER.COMMON.NOT_FOUND);
+      throw new NotFoundException(USER_MESSAGES.USER.COMMON.FAILURE.NOT_FOUND);
     }
 
     // 현재 비밀번호 확인
@@ -119,7 +113,7 @@ export class UsersService {
       const user = await queryRunner.manager.findOne(User, { where: { id } });
 
       if (!user) {
-        throw new NotFoundException(USER_MESSAGES.USER.COMMON.NOT_FOUND);
+        throw new NotFoundException(USER_MESSAGES.USER.COMMON.FAILURE.NOT_FOUND);
       }
 
       // 포인트 충전
@@ -154,14 +148,16 @@ export class UsersService {
 
   // 회원 탈퇴
   async deleteUser(id: number) {
-    const user = await this.userRepository.findOneBy({ id });
+    try {
+      const deleteUser = await this.userRepository.softDelete({ id });
 
-    if (!user) {
-      throw new NotFoundException(USER_MESSAGES.USER.COMMON.NOT_FOUND);
+      if (deleteUser.affected === 0) {
+        throw new NotFoundException(USER_MESSAGES.USER.COMMON.FAILURE.NOT_FOUND);
+      }
+
+      return deleteUser;
+    } catch (err) {
+      throw new InternalServerErrorException(USER_MESSAGES.USER.COMMON.FAILURE.FAIL);
     }
-
-    const deleteUser = await this.userRepository.softDelete({ id });
-
-    return deleteUser;
   }
 }
