@@ -15,16 +15,16 @@ export class PointLog {
   id: number;
 
   // 유저 엔티티 외래키 설정
-  @Column({ name: 'user_id', unsigned: true })
+  @Column({ type: 'int', name: 'user_id', unsigned: true })
   userId: number;
 
-  @Column()
+  @Column({ type: 'int' })
   price: number;
 
-  @Column()
+  @Column({ type: 'varchar' })
   description: string;
 
-  @Column({ default: 'DEPOSIT' })
+  @Column({ type: 'enum', enum: PointType, default: PointType.DEPOSIT })
   type: PointType;
 
   @CreateDateColumn()

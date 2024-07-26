@@ -45,20 +45,24 @@ export class TradesController {
 
   //중고 거래 수정
   @Patch()
-  async updateTrade(@Body() updateTradeDto: UpdateTradeDto) {
-    return await this.tradesService.updateTrade(updateTradeDto);
+  @UseGuards(AuthGuard('jwt'))
+  async updateTrade(@Body() updateTradeDto: UpdateTradeDto, @Req() req: { user: User }) {
+    const user = req.user;
+    return await this.tradesService.updateTrade(updateTradeDto, user.id);
   }
 
   //중고 거래 삭제
   @Delete() //id는 인증과정에서 받을 예정
-  async deleteTrade(@Param('tradeId', ParseIntPipe) tradeId, id) {
-    return await this.tradesService.deleteTrade(tradeId, id);
+  @UseGuards(AuthGuard('jwt'))
+  async deleteTrade(@Param('tradeId', ParseIntPipe) tradeId, @Req() req: { user: User }) {
+    const user = req.user;
+    return await this.tradesService.deleteTrade(tradeId, user.id);
   }
 
   //중고 거래 구매
   @Post('/:tradeId')
   @UseGuards(AuthGuard('jwt'))
-  async createTicket(@Param('tradeId', ParseIntPipe) tradeId, req: { user: User }) {
+  async createTicket(@Param('tradeId', ParseIntPipe) tradeId, @Req() req: { user: User }) {
     const user = req.user;
     return await this.tradesService.createTicket(tradeId, user.id);
   }
