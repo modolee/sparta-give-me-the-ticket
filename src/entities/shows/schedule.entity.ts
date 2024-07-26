@@ -39,8 +39,8 @@ export class Schedule {
   date: Date;
 
   /**
-   * 공연 날짜
-   * @example "2024-07-25"
+   * 공연 시간
+   * @example "14:30"
    */
   @Factory((faker) => {
     const hour = randomInt(0, 23).toString().padStart(2, '0');

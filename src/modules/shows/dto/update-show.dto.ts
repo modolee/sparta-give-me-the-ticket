@@ -17,36 +17,28 @@ class ShowDto extends PickType(Show, [
   'totalSeat',
 ] as const) {}
 export class UpdateShowDto extends PartialType(ShowDto) {
-  @IsOptional()
   @IsString()
   title?: string;
 
-  @IsOptional()
   @IsString()
   content?: string;
 
   @IsEnum(ShowCategory, { message: SHOW_MESSAGES.COMMON.CATEGORY.INVALID })
-  @IsOptional()
   category?: ShowCategory;
 
-  @IsOptional()
   @IsNumber()
   runtime?: number;
 
-  @IsOptional()
   @IsString()
   location?: string;
 
-  @IsOptional()
   @IsNumber()
   price?: number;
 
-  @IsOptional()
   @IsNumber()
   totalSeat?: number;
 
-  @IsOptional()
   @ValidateNested()
   @Type(() => CreateScheduleDto)
-  schedules: CreateScheduleDto[];
+  schedules?: CreateScheduleDto[];
 }
