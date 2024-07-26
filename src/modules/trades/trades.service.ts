@@ -98,7 +98,7 @@ export class TradesService {
   }
 
   //=========ConvenienceFunction======================
-  //중고 거래 목록 보기//완료
+  //중고 거래 목록 보기//완료 (검증 대부분 완료)
   async getList() {
     let trade_list = await this.TradeRepository.find({
       select: { id: true, showId: true, price: true },
@@ -128,7 +128,7 @@ export class TradesService {
     return trade_list;
   }
 
-  //중고 거래 상세 보기 //완료
+  //중고 거래 상세 보기 //완료 (검증 대부분 완료)
   async getTradeDetail(tradeId: number) {
     let trade_list = await this.TradeRepository.find({
       select: { id: true, showId: true, price: true, sellerId: true },
@@ -210,24 +210,32 @@ export class TradesService {
     // return { sellerId, ticketId, showId, price, closedAt };
   }
 
-  //중고 거래 수정 메서드 //Id 값만 가져와서 검증만 추가하면 완료
-  async updateTrade(updateTradeDto: UpdateTradeDto) {
+  //중고 거래 수정 메서드 //완료(검증 대부분 완료)
+  async updateTrade(updateTradeDto: UpdateTradeDto, userId: number) {
     const { price, tradeId } = updateTradeDto;
 
     const trade = await this.TradeRepository.findOne({ where: { id: tradeId } });
     if (!trade) throw new NotFoundException(`해당 거래가 존재하지 않습니다`);
 
+    if (trade.sellerId !== userId) throw Error('해당 중고거래의 게시자가 아닙니다');
+
     return await this.TradeRepository.update(tradeId, { price });
   }
 
-  //중고 거래 삭제 메서드  //Id 값만 가져와서 검증만 추가하면 완료
-  async deleteTrade(tradeId: number, id) {
+  //중고 거래 삭제 메서드  //완료(검증 대부분 완료)
+  async deleteTrade(tradeId: number, userId: number) {
     const trade = await this.TradeRepository.findOne({ where: { id: tradeId } });
     if (!trade) throw new NotFoundException(`해당 거래가 존재하지 않습니다`);
+
+    if (trade.sellerId !== userId) {
+      throw Error('해당 중고거래의 게시자가 아닙니다');
+    }
+
+    //모든 검증이 끝난 뒤 삭제 로직
     return await this.TradeRepository.delete(tradeId);
   }
 
-  //티켓 구매 메서드
+  //티켓 구매 메서드 (buyerId는 기존의 userId와 같다) (현재 수정중)
   async createTicket(tradeId: number, buyerId: number) {
     //해당 거래 존재 확인
     const trade = await this.TradeRepository.findOne({ where: { id: tradeId } });
