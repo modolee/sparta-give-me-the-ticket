@@ -298,13 +298,9 @@ export class ShowsService {
 
     //remove 검색, delete는 id 값을 넘겨줘야한다.
   }
+
   /* 티켓 예매 */
-  async createTicket(
-    showId: number,
-    createTicketDto: CreateTicketDto,
-    scheduleId: number,
-    user: User
-  ) {
+  async createTicket(showId: number, createTicketDto: CreateTicketDto, user: User) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -352,6 +348,7 @@ export class ShowsService {
 
       const ticket = queryRunner.manager.create(Ticket, {
         userId: user.id,
+        scheduleId: schedule.id,
         showId: show.id,
         nickname: user.nickname,
         title: show.title,
@@ -379,14 +376,12 @@ export class ShowsService {
   }
 
   /*티켓 환불 */
-  async refundTicket(showId: number, ticketId: number, scheduleId: number, user: User) {
+  async refundTicket(showId: number, ticketId: number, user: User) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      const schedule = await queryRunner.manager.findOneBy(Schedule, { id: scheduleId });
-
       // 환불할 티켓이 있는지 확인합니다.
       const ticket = await queryRunner.manager.findOne(Ticket, {
         where: {
@@ -394,12 +389,12 @@ export class ShowsService {
           showId,
         },
       });
+      console.log(ticket);
       if (!ticket) {
         throw new NotFoundException(SHOW_TICKET_MESSAGES.COMMON.TICKET.NOT_FOUND);
       }
 
       const showTime = `${String(ticket.date)}T${String(ticket.time)}`;
-      console.log(showTime);
 
       // 현재의 시간에서 1시간 전으로 시간 제한을 설정
       const oneHoursBeforeShowTime = subHours(showTime, 1);
@@ -417,6 +412,8 @@ export class ShowsService {
       // 공연 시작 3일 전, 10일 전 시간 계산
       const threeDaysBeforeShow = subDays(showTime, 3);
       const tenDaysBeforeShow = subDays(showTime, 10);
+      // 공연 시작
+      const oneDayAfterBooking = addHours(bookingTime, 24);
 
       // 환불 정책에 따른 비율 계산
       let refundPoint = SHOW_TICKETS.COMMON.REFUND_POINT;
@@ -428,37 +425,47 @@ export class ShowsService {
 
       // 환불 가능 여부와 비율 결정
 
-      // 1시간 전이면 10퍼센트 환불
-      if (nowTime > oneHoursBeforeShowTime) {
+      // 공연 시작 전 1시간 까지는 10퍼센트 환불
+      if (nowTime > oneHoursBeforeShowTime && nowTime < threeDaysBeforeShow) {
         refundPoint = ticket.price * SHOW_TICKETS.COMMON.TICKET.PERCENT.TEN;
       }
-      // 공연 시작 3일 전까지 50% 환불
-      else if (nowTime > threeDaysBeforeShow) {
+
+      //공연 시작 3일 전까지는 50% 환불
+      else if (nowTime > threeDaysBeforeShow && nowTime < tenDaysBeforeShow) {
         refundPoint = ticket.price * SHOW_TICKETS.COMMON.TICKET.PERCENT.FIFTY;
       }
-      // 공연 시작 10일 전까지 전액 환불
-      else if (isBefore(nowTime, tenDaysBeforeShow)) {
+      // 공연 시작 전액 환불
+      else if (nowTime > tenDaysBeforeShow) {
         refundPoint = ticket.price;
       }
       // 공연 예매 후 24시간 이내 전액 환불
-      else if (isAfter(nowTime, addHours(bookingTime, 24))) {
+      else if (nowTime < oneDayAfterBooking) {
         refundPoint = ticket.price;
       } else {
         throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.REFUND.NOT_ALLOWED);
       }
+      console.log(nowTime);
+      console.log(oneHoursBeforeShowTime);
+      // 티켓의 환불이 이미 됐을경우 메시지를 날립니다.
+      if (ticket.status == 'REFUNDED') {
+        throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.REFUND.ALREADY_REFUNDED);
+      }
 
       // 티켓 상태를 환불로 업데이트를 합니다.
       ticket.status = TicketStatus.REFUNDED;
+
       await queryRunner.manager.save(Ticket, ticket);
 
       user.point += refundPoint;
 
       await queryRunner.manager.save(User, user);
 
-      let refundSeat = schedule.remainSeat;
-      // 좌석 증가 처리
-      refundSeat += SHOW_TICKETS.COMMON.SEAT.INCREASED;
-      console.log(schedule.remainSeat);
+      // 잔여 좌석을 증가시키기 위해 티켓 안에 있는 스케줄 id랑 같은 스케줄 id를 찾습니다.
+      const schedule = await queryRunner.manager.findOne(Schedule, {
+        where: { id: ticket.scheduleId },
+      });
+
+      schedule.remainSeat += 1;
 
       await queryRunner.manager.save(Schedule, schedule);
 
