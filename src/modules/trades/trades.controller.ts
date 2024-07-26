@@ -69,7 +69,16 @@ export class TradesController {
 
   //테스트 메서드
   @Get('test')
-  async test(@Body('ticketId') ticketId: number) {
-    return await this.tradesService.test(ticketId);
+  @UseGuards(AuthGuard('jwt'))
+  async test(@Body('ticketId') ticketId: number, @Req() req: { user: User }) {
+    const user = req.user;
+    return await this.tradesService.test(ticketId, user.id);
+  }
+
+  @Get('make_admin_test')
+  @UseGuards(AuthGuard('jwt'))
+  async make_admin(@Req() req: { user: User }) {
+    const user = req.user;
+    return await this.tradesService.make_admin(user.id);
   }
 }

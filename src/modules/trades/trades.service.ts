@@ -6,6 +6,9 @@ import { Repository } from 'typeorm';
 import { NotFoundException } from '@nestjs/common';
 import { Redis } from 'ioredis';
 
+//types
+import { Role } from 'src/commons/types/users/user-role.type';
+
 //entities
 import { Trade } from 'src/entities/trades/trade.entity';
 import { TradeLog } from 'src/entities/trades/trade-log.entity';
@@ -276,12 +279,13 @@ export class TradesService {
     return { newId };
   }
 
-  //=======================
-  async test(ticketId: number) {
-    if (await this.checkRedisTicket(ticketId)) {
-      return { message: '티켓이 존재합니다.' };
-    } else {
-      return { message: '티켓이 존재하지 않습니다' };
-    }
+  //=======================테스트 함수 START====================
+  async test(ticketId: number, userId: number) {
+    return;
   }
+  async make_admin(userId: number) {
+    const user = await this.UserRepository.update({ id: userId }, { role: Role.ADMIN });
+    return { message: '성공적으로 관리자로 권한이 변경되었습니다.' };
+  }
+  //=======================테스트 함수 END====================
 }
