@@ -4,9 +4,10 @@ import { UsersController } from './users.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/entities/users/user.entity';
 import { PointLog } from 'src/entities/users/point-log.entity';
+import { Bookmark } from 'src/entities/users/bookmark.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, PointLog])],
+  imports: [TypeOrmModule.forFeature([User, PointLog, Bookmark])],
   controllers: [UsersController],
   providers: [UsersService],
   exports: [UsersService],
