@@ -17,9 +17,9 @@ import { ChargePointDto } from './dto/charge-point.dto';
 import { USER_MESSAGES } from 'src/commons/constants/users/user-message.constant';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
-@UseGuards(AuthGuard('jwt'))
 @ApiTags('사용자')
 @ApiBearerAuth()
+@UseGuards(AuthGuard('jwt'))
 @Controller('users')
 export class UsersController {
   constructor(private readonly userService: UsersService) {}
@@ -103,7 +103,7 @@ export class UsersController {
 
     return {
       statusCode: HttpStatus.OK,
-      message: USER_MESSAGES.USER.COMMON.IS_DELETED,
+      message: USER_MESSAGES.USER.COMMON.SUCCESS,
       deleteUser,
     };
   }

@@ -69,7 +69,7 @@ export class User {
   @Column()
   profileImg: string;
 
-  @Column()
+  @Column({ default: 'USER' })
   role: Role;
 
   @CreateDateColumn()

@@ -1,8 +1,11 @@
 export const USER_MESSAGES = {
   USER: {
     COMMON: {
-      NOT_FOUND: '사용자를 찾을 수 없습니다.',
-      IS_DELETED: '회원 탈퇴에 성공했습니다.',
+      SUCCESS: '회원 탈퇴에 성공했습니다',
+      FAILURE: {
+        FAIL: '회원 탈퇴에 실패했습니다.',
+        NOT_FOUND: '회원 정보를 찾을 수 없습니다.',
+      },
     },
     USERINFO: {
       UPDATE: {
