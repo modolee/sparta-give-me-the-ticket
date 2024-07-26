@@ -51,6 +51,7 @@ export class ShowsService {
     const show = await this.showRepository.create({
       ...restOfShow,
       userId: req.user.id,
+      //이미지 url 받기
       schedules: schedules.map((schedule) => ({
         ...schedule,
       })),
@@ -135,7 +136,7 @@ export class ShowsService {
   }
 
   /*공연 수정 */
-  async updateShow(showId: number, updateShowDto: UpdateShowDto, req: any) {
+  async updateShow(showId: number, updateShowDto: UpdateShowDto) {
     const show = await this.showRepository.findOne({
       where: { id: showId },
       relations: { schedules: true },
@@ -144,7 +145,6 @@ export class ShowsService {
     //공연 존재 여부 확인
     if (!show) {
       console.log('showId: ', show.id);
-
       throw new NotFoundException(SHOW_MESSAGES.COMMON.NOT_FOUND);
     }
 
@@ -156,63 +156,7 @@ export class ShowsService {
     // 공연 업데이트
     Object.assign(show, updateShowDto);
 
-    // 스케줄 업데이트
-    if (updateShowDto.schedules) {
-      // 기존 스케줄 문자열로 변환
-      const existingSchedulesMap = new Map(
-        show.schedules.map((schedule) => [
-          `${new Date(schedule.date).toISOString().split('T')[0]}-${schedule.time}`,
-          schedule,
-        ])
-      );
-
-      // 새로 입력받은 스케줄
-      const newSchedules = updateShowDto.schedules;
-      console.log('새로운 스케줄:', newSchedules);
-      console.log('show: ', show);
-
-      // 기존 스케줄 중 새로운 스케줄에 포함되지 않은 것들을 필터링하여 삭제할 목록을 생성
-      const schedulesToDelete = show.schedules.filter((schedule) => {
-        const identifier = `${new Date(schedule.date).toISOString().split('T')[0]}-${schedule.time}`;
-        return !newSchedules.some(
-          (newSchedule) => `${newSchedule.date}-${newSchedule.time}` === identifier
-        );
-      });
-
-      // 삭제할 스케줄 업데이트
-      schedulesToDelete.forEach((schedule) => {
-        schedule.deletedAt = new Date();
-      });
-
-      // 삭제된 스케줄을 데이터베이스에 저장
-      await this.scheduleRepository.save(schedulesToDelete);
-
-      // 새로운 스케줄을 기존 스케줄과 비교
-      await Promise.all(
-        newSchedules.map(async ({ date, time }) => {
-          const identifier = `${date}-${time}`;
-          const existingSchedule = existingSchedulesMap.get(identifier);
-
-          if (existingSchedule) {
-            // 기존 스케줄 업데이트
-            existingSchedule.date = new Date(date);
-            existingSchedule.time = time;
-            existingSchedule.deletedAt = null;
-          } else {
-            // 새로운 스케줄 추가
-            console.log('새로운 스케줄 추가');
-            const newSchedule = this.scheduleRepository.create({
-              date: new Date(date),
-              time,
-              show,
-            });
-            console.log('showId: ', show.id);
-            console.log('newSchedule:', newSchedule);
-            await this.scheduleRepository.save(newSchedule);
-          }
-        })
-      );
-    }
+    //이미지 삭제, 이미지 추가
 
     //변경 사항 저장
     await this.showRepository.save(show);
@@ -225,7 +169,7 @@ export class ShowsService {
   }
 
   /*공연 삭제 */
-  async deleteShow(showId: number, req: any) {
+  async deleteShow(showId: number) {
     const show = await this.showRepository.findOne({
       where: { id: showId },
       relations: { schedules: true },

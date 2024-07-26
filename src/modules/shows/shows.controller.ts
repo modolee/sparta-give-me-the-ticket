@@ -23,6 +23,9 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { UpdateShowDto } from './dto/update-show.dto';
 import { GetShowListDto } from './dto/get-show-list.dto';
 import { CreateTicketDto } from './dto/create-ticket-dto';
+import { RolesGuard } from '../auth/utils/roles.guard';
+import { Roles } from '../auth/utils/roles.decorator';
+import { Role } from 'src/commons/types/users/user-role.type';
 
 @ApiTags('공연')
 @Controller('shows')
@@ -37,7 +40,8 @@ export class ShowsController {
    * */
   @ApiBearerAuth()
   @Post()
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.ADMIN)
   async createShow(@Body() createShowDto: CreateShowDto, @Req() req: any) {
     return await this.showsService.createShow(createShowDto, req);
   }
@@ -70,13 +74,10 @@ export class ShowsController {
    * */
   @ApiBearerAuth()
   @Patch(':showId')
-  @UseGuards(AuthGuard('jwt'))
-  async updateShow(
-    @Param('showId') showId: number,
-    @Body() updateShowDto: UpdateShowDto,
-    @Req() req: any
-  ) {
-    return await this.showsService.updateShow(+showId, updateShowDto, req);
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.ADMIN)
+  async updateShow(@Param('showId') showId: number, @Body() updateShowDto: UpdateShowDto) {
+    return await this.showsService.updateShow(+showId, updateShowDto);
   }
 
   /**
@@ -86,9 +87,10 @@ export class ShowsController {
    * */
   @ApiBearerAuth()
   @Delete(':showId')
-  @UseGuards(AuthGuard('jwt'))
-  async deleteShow(@Param('showId') showId: number, @Req() req: any) {
-    return await this.showsService.deleteShow(+showId, req);
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(Role.ADMIN)
+  async deleteShow(@Param('showId') showId: number) {
+    return await this.showsService.deleteShow(+showId);
   }
 
   /**
