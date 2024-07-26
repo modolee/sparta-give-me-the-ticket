@@ -21,6 +21,7 @@ export const SHOW_TICKET_MESSAGES = {
     REFUND: {
       EXPIRED: '공연 시작 1시간 전까지만 티켓을 환불할 수 있습니다.',
       ALREADY_REFUNDED: '이미 환불된 티켓입니다.',
+      SUCCESS: '티켓 환불이 완료되었습니다.',
     },
   },
 };
