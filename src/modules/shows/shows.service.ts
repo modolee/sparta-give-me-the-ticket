@@ -18,7 +18,17 @@ import { SHOW_TICKET_MESSAGES } from 'src/commons/constants/shows/show-ticket-me
 import { SHOW_TICKETS } from 'src/commons/constants/shows/show-tickets.constant';
 import { TicketStatus } from 'src/commons/types/shows/ticket.type';
 import { DeleteBookmarkDto } from './dto/delete-bookmark.dto';
-import { addHours, format, isAfter, isBefore, parse, set, subDays, subHours } from 'date-fns';
+import {
+  addHours,
+  format,
+  isAfter,
+  isBefore,
+  parse,
+  set,
+  startOfDay,
+  subDays,
+  subHours,
+} from 'date-fns';
 import { UpdateShowDto } from './dto/update-show.dto';
 import { SHOW_MESSAGES } from 'src/commons/constants/shows/show-messages.constant';
 import { GetShowListDto } from './dto/get-show-list.dto';
@@ -333,7 +343,7 @@ export class ShowsService {
           showId,
         },
       });
-      console.log(ticket);
+
       if (!ticket) {
         throw new NotFoundException(SHOW_TICKET_MESSAGES.COMMON.TICKET.NOT_FOUND);
       }
@@ -342,54 +352,46 @@ export class ShowsService {
 
       // 현재의 시간에서 1시간 전으로 시간 제한을 설정
       const oneHoursBeforeShowTime = subHours(showTime, 1);
+      //현재 시간
       const nowTime = new Date();
+      // 티켓 예매 시점 확인 (티켓의 생성 시점)
+      const bookingTime = new Date(ticket.createdAt);
+      // 공연 시작 3일 전, 10일 전 시간 계산
+      const threeDaysBeforeShow = subDays(showTime, 3);
+      const tenDaysBeforeShow = subDays(showTime, 10);
+      // 공연 시작 최대 24시간 이내
+      const oneDayAfterBooking = addHours(bookingTime, 24);
+      // 공연 당일의 가장 빠른 시간 (00:00) 설정
+      const earlyTime = startOfDay(showTime);
+
+      // 환불 정책에 따른 비율 계산
+      let refundPoint = SHOW_TICKETS.COMMON.REFUND_POINT;
 
       // 공연 시간이 현재 시간 기준으로 1시간 이전일 경우 환불하기 어렵다는 메시지 전달
       if (nowTime >= oneHoursBeforeShowTime) {
         throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.REFUND.EXPIRED);
       }
 
-      // 현재 시간 가져오기
-
-      // 티켓 예매 시점 확인 (티켓의 생성 시점)
-      const bookingTime = new Date(ticket.createdAt);
-      // 공연 시작 3일 전, 10일 전 시간 계산
-      const threeDaysBeforeShow = subDays(showTime, 3);
-      const tenDaysBeforeShow = subDays(showTime, 10);
-      // 공연 시작
-      const oneDayAfterBooking = addHours(bookingTime, 24);
-
-      // 환불 정책에 따른 비율 계산
-      let refundPoint = SHOW_TICKETS.COMMON.REFUND_POINT;
-
-      // 예매 시점이 공연 시작 3일 전까지인지 확인
-      if (bookingTime > threeDaysBeforeShow) {
-        throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.REFUND.NOT_ALLOWED);
+      // 공연 시작 10일 전까지(마지노선) 전액 환불
+      if (nowTime >= tenDaysBeforeShow) {
+        refundPoint = ticket.price;
       }
 
-      // 환불 가능 여부와 비율 결정
+      //공연 시작 3일 전까지는 50% 환불 - 3일 전까지는 기본적으로 50프로 환불이 맞다.
+      else if (nowTime >= threeDaysBeforeShow) {
+        // 공연 예매 후 24시간 이내 전액 환불 - 3일 전까지는 전액 환불을 해주기로 했습니다.
+        if (nowTime < oneDayAfterBooking) {
+          refundPoint = ticket.price;
+        } else {
+          refundPoint = ticket.price * SHOW_TICKETS.COMMON.TICKET.PERCENT.FIFTY;
+        }
+      }
 
-      // 공연 시작 전 1시간 까지는 10퍼센트 환불
-      if (nowTime > oneHoursBeforeShowTime && nowTime < threeDaysBeforeShow) {
+      // 공연 날짜의 00시부터 공연 시작 전 1시간 까지는 10퍼센트 환불
+      else if (nowTime >= earlyTime && nowTime <= oneHoursBeforeShowTime) {
         refundPoint = ticket.price * SHOW_TICKETS.COMMON.TICKET.PERCENT.TEN;
       }
 
-      //공연 시작 3일 전까지는 50% 환불
-      else if (nowTime > threeDaysBeforeShow && nowTime < tenDaysBeforeShow) {
-        refundPoint = ticket.price * SHOW_TICKETS.COMMON.TICKET.PERCENT.FIFTY;
-      }
-      // 공연 시작 전액 환불
-      else if (nowTime > tenDaysBeforeShow) {
-        refundPoint = ticket.price;
-      }
-      // 공연 예매 후 24시간 이내 전액 환불
-      else if (nowTime < oneDayAfterBooking) {
-        refundPoint = ticket.price;
-      } else {
-        throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.REFUND.NOT_ALLOWED);
-      }
-      console.log(nowTime);
-      console.log(oneHoursBeforeShowTime);
       // 티켓의 환불이 이미 됐을경우 메시지를 날립니다.
       if (ticket.status == 'REFUNDED') {
         throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.REFUND.ALREADY_REFUNDED);

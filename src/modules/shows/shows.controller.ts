@@ -98,6 +98,7 @@ export class ShowsController {
    * @param showId
    * @returns
    */
+  @ApiBearerAuth()
   @Roles(Role.USER)
   @UseGuards(RolesGuard)
   @Post(':showId/bookmark')
@@ -116,6 +117,7 @@ export class ShowsController {
    * @param showId
    * @returns
    */
+  @ApiBearerAuth()
   @Roles(Role.USER)
   @UseGuards(RolesGuard)
   @Delete(':showId/bookmark/:bookmarkId')
