@@ -16,14 +16,14 @@ import { Image } from '../images/image.entity';
 import { Bookmark } from '../users/bookmark.entity';
 import { Ticket } from './ticket.entity';
 import { Factory } from 'nestjs-seeder';
-import { randomInt } from 'crypto';
 
 @Entity({ name: 'shows' })
 export class Show {
+  @Factory((faker) => faker.number.int({ min: 1, max: 20 }))
   @PrimaryGeneratedColumn({ unsigned: true })
   id: number;
 
-  @Factory(() => randomInt(4, 6))
+  @Factory((faker) => faker.number.int({ min: 1, max: 20 }))
   //유저 엔티티 외래키 설정
   @Column({ type: 'int', name: 'user_id', unsigned: true })
   userId: number;
@@ -59,7 +59,7 @@ export class Show {
    * 공연 소요시간
    * @example 200
    */
-  @Factory(() => randomInt(50, 100))
+  @Factory((faker) => faker.number.int({ min: 50, max: 200 }))
   @Column({ type: 'int', nullable: false })
   runtime: number;
 
@@ -75,7 +75,7 @@ export class Show {
    * 공연 금액
    * @example 30000
    */
-  @Factory(() => randomInt(50000, 100000))
+  @Factory((faker) => faker.number.int({ min: 10000, max: 30000 }))
   @Column({ type: 'int', nullable: false })
   price: number;
 
@@ -83,7 +83,7 @@ export class Show {
    * 공연 총 좌석 수
    * @example 1800
    */
-  @Factory(() => randomInt(50, 1000))
+  @Factory((faker) => faker.number.int({ min: 100, max: 2000 }))
   @Column({ type: 'int', nullable: false })
   totalSeat: number;
 

@@ -14,24 +14,20 @@ import { Roles } from '../auth/utils/roles.decorator';
 import { Role } from 'src/commons/types/users/user-role.type';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { ApiImages } from './utils/api-images.decotator';
-import { MulterExceptionFilter } from './utils/upload-image-exception.filter';
 
 @ApiTags('이미지')
 @Controller('images')
-
 export class ImagesController {
   constructor(private readonly imagesService: ImagesService) {}
 
   // 이미지 업로드 API
-  // 왜 초기화 될까?
   @ApiBearerAuth()
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
-  @UseFilters(MulterExceptionFilter)
-  @UseInterceptors(FilesInterceptor('image', 1))
+  @UseInterceptors(FilesInterceptor('image'))
   @ApiImages('image')
   @Post()
   async uploadImage(@UploadedFiles() files: Express.Multer.File[]) {
-    return await this.imagesService.uploadImage(files);
+    return await this.imagesService.uploadImage(files, 5);
   }
 }

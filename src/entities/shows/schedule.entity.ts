@@ -17,11 +17,12 @@ import { Ticket } from './ticket.entity';
 
 @Entity({ name: 'schedules' })
 export class Schedule {
+  @Factory((faker) => faker.number.int({ min: 1, max: 20 }))
   @PrimaryGeneratedColumn({ unsigned: true })
   id: number;
 
   //공연 엔티티 외래키 설정
-  @Factory(() => randomInt(6, 8))
+  @Factory((faker) => faker.number.int({ min: 1, max: 20 }))
   @Column({ type: 'int', name: 'show_id', unsigned: true })
   showId: number;
 
@@ -50,7 +51,7 @@ export class Schedule {
   @Column({ type: 'time' })
   time: string;
 
-  @Factory(() => randomInt(50, 1000))
+  @Factory((faker) => faker.number.int({ min: 10000, max: 30000 }))
   @Column({ type: 'int' })
   remainSeat: number;
 

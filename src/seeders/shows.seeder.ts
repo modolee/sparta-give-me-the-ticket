@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { Seeder } from 'nestjs-seeder';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from 'src/entities/users/user.entity';
 import { DataFactory } from 'nestjs-seeder';
 import { Show } from 'src/entities/shows/show.entity';
 
