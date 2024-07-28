@@ -3,7 +3,29 @@ import { ElasticsearchService } from '@nestjs/elasticsearch';
 
 @Injectable()
 export class SearchService {
-  constructor(private readonly elasticsearchService: ElasticsearchService) {}
+  constructor(private readonly eService: ElasticsearchService) {}
+
+  async onModuleInit() {
+    await this.createIndex();
+  }
+
+  private async createIndex() {
+    const indexExists = await this.eService.indices.exists({ index: 'shows' });
+
+    if (!indexExists) {
+      await this.eService.indices.create({
+        index: 'shows',
+        body: {
+          mappings: {
+            properties: {
+              title: { type: 'text' },
+              category: { type: 'keyword' },
+            },
+          },
+        },
+      });
+    }
+  }
 
   async searchShows(category: string, search: string) {
     const mustQueries = [];
@@ -26,7 +48,7 @@ export class SearchService {
     }
 
     // elasticsearch 검색
-    const result = await this.elasticsearchService.search({
+    const result = await this.eService.search({
       index: 'shows',
       body: {
         query: {

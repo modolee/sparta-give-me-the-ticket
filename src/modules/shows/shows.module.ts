@@ -7,7 +7,6 @@ import { User } from 'src/entities/users/user.entity';
 import { Ticket } from 'src/entities/shows/ticket.entity';
 import { Bookmark } from 'src/entities/users/bookmark.entity';
 import { Schedule } from 'src/entities/shows/schedule.entity';
-import { SearchService } from './search/search.service';
 import { SearchModule } from './search/search.module';
 @Module({
   imports: [TypeOrmModule.forFeature([Show, User, Ticket, Bookmark, Schedule]), SearchModule],
