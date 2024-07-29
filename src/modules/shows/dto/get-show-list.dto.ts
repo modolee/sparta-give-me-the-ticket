@@ -1,4 +1,5 @@
-import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
 import { ShowCategory } from 'src/commons/types/shows/show-category.type';
 
 export class GetShowListDto {
@@ -17,4 +18,22 @@ export class GetShowListDto {
   @IsOptional()
   @IsString()
   search?: string;
+
+  /**
+   * 페이지 번호
+   * @example 1
+   */
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page: number;
+
+  /**
+   * 페이지 당 항목 수
+   * @example 10
+   */
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  limit: number;
 }
