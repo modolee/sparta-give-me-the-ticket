@@ -46,5 +46,14 @@ export const USER_MESSAGES = {
         FAILURE: '포인트 내역 조회에 실패했습니다.',
       },
     },
+    TICKET: {
+      GET_LIST: {
+        SUCCESS: '예매 목록 조회에 성공했습니다',
+        FAILURE: {
+          FAIL: '예매 목록 조회에 실패했습니다.',
+          NOT_FOUND: '예매 목록이 없습니다.',
+        },
+      },
+    },
   },
 };
