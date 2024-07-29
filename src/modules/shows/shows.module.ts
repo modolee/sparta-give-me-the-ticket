@@ -10,6 +10,7 @@ import { Schedule } from 'src/entities/shows/schedule.entity';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BullModule } from '@nestjs/bull';
 import { QueueConfig } from 'src/configs/queue.config';
+import { ShowsConsumer } from './shows.consumer';
 
 @Module({
   imports: [
@@ -25,7 +26,7 @@ import { QueueConfig } from 'src/configs/queue.config';
     TypeOrmModule.forFeature([Show, User, Ticket, Bookmark, Schedule]),
   ],
   controllers: [ShowsController],
-  providers: [ShowsService],
+  providers: [ShowsService, ShowsConsumer],
   exports: [TypeOrmModule, BullModule],
 })
 export class ShowsModule {}
