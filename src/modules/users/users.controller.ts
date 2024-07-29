@@ -78,8 +78,14 @@ export class UsersController {
 
   // 거래 내역 조회
   @Get('/me/trade')
-  async getTradeLog() {
-    return await this.userService.getTradeLog();
+  async getTradeLog(@Req() req: any) {
+    const getTradeLog = await this.userService.getTradeLog(req.user.id);
+
+    return {
+      statusCode: HttpStatus.OK,
+      message: USER_MESSAGES.USER.TRADE.GET_LOG.SUCCESS,
+      getTradeLog,
+    };
   }
 
   /**
