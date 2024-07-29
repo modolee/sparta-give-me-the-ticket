@@ -45,10 +45,20 @@ export class UsersController {
     };
   }
 
-  // 예매 목록 조회
+  /**
+   * 예매 목록 조회
+   * @param req
+   * @returns
+   */
   @Get('/me/ticket')
-  async getTicketList() {
-    return await this.userService.getTicketList();
+  async getTicketList(@Req() req: any) {
+    const getTicketList = await this.userService.getTicketList(req.user.id);
+
+    return {
+      statusCode: HttpStatus.OK,
+      message: USER_MESSAGES.USER.TICKET.GET_LIST.SUCCESS,
+      getTicketList,
+    };
   }
 
   /**
