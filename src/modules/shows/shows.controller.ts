@@ -147,7 +147,11 @@ export class ShowsController {
     @Body() createTicketDto: CreateTicketDto,
     @Req() req: any
   ) {
-    return this.showsService.createTicket(showId, createTicketDto, req.user);
+    this.showsService.addTicketQueue(showId, createTicketDto, req.user);
+    return {
+      status: HttpStatus.CREATED,
+      message: SHOW_TICKET_MESSAGES.COMMON.TICKET.SUCCESS,
+    };
   }
   /**
    * 티켓 환불
