@@ -3,6 +3,7 @@ import {
   ConflictException,
   HttpStatus,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -10,6 +11,7 @@ import { Show } from 'src/entities/shows/show.entity';
 import { Ticket } from 'src/entities/shows/ticket.entity';
 import { Bookmark } from 'src/entities/users/bookmark.entity';
 import { User } from 'src/entities/users/user.entity';
+import { Image } from 'src/entities/images/image.entity';
 import { DataSource, Like, Repository } from 'typeorm';
 import { CreateShowDto } from './dto/create-show.dto';
 import { USER_BOOKMARK_MESSAGES } from 'src/commons/constants/users/user-bookmark-messages.constant';
@@ -17,7 +19,7 @@ import { SHOW_TICKET_MESSAGES } from 'src/commons/constants/shows/show-ticket-me
 import { SHOW_TICKETS } from 'src/commons/constants/shows/show-tickets.constant';
 import { TicketStatus } from 'src/commons/types/shows/ticket.type';
 import { DeleteBookmarkDto } from './dto/delete-bookmark.dto';
-import { addHours, isBefore, startOfDay, subDays, subHours } from 'date-fns';
+import { addHours, isBefore, nextDay, startOfDay, subDays, subHours } from 'date-fns';
 import { UpdateShowDto } from './dto/update-show.dto';
 import { SHOW_MESSAGES } from 'src/commons/constants/shows/show-messages.constant';
 import { GetShowListDto } from './dto/get-show-list.dto';
@@ -25,6 +27,7 @@ import { CreateTicketDto } from './dto/create-ticket-dto';
 import { Schedule } from 'src/entities/shows/schedule.entity';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
+import { ImagesService } from '../images/images.service';
 
 @Injectable()
 export class ShowsService {
@@ -32,13 +35,15 @@ export class ShowsService {
     @InjectRepository(Show) private showRepository: Repository<Show>,
     @InjectRepository(Bookmark) private bookmarkRepository: Repository<Bookmark>,
     @InjectRepository(Schedule) private scheduleRepository: Repository<Schedule>,
+    @InjectRepository(Image) private imagesRepository: Repository<Image>,
     @InjectQueue('ticketQueue') private ticketQueue: Queue,
-    private dataSource: DataSource
+    private dataSource: DataSource,
+    private readonly imagesService: ImagesService
   ) {}
 
   /*공연 생성 */
   async createShow(createShowDto: CreateShowDto, req: any) {
-    const { schedules, ...restOfShow } = createShowDto;
+    const { schedules, imageUrl, ...restOfShow } = createShowDto;
 
     //공연 명 기준으로 이미 있는 공연인지 확인
     const existedShow = await this.showRepository.findOne({
@@ -49,43 +54,73 @@ export class ShowsService {
       throw new ConflictException(SHOW_MESSAGES.COMMON.TITLE.EXISTED);
     }
 
-    //공연 생성
-    const show = await this.showRepository.create({
-      ...restOfShow,
-      userId: req.user.id,
-      //이미지 url 받기
-      schedules: schedules.map((schedule) => ({
-        ...schedule,
-        remainSeat: restOfShow.totalSeat,
-      })),
-    });
+    // 트랜젝션 연결 설정 초기화
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    //생성한 공연 DB에 저장
-    await this.showRepository.save(show);
-
-    return {
-      status: HttpStatus.CREATED,
-      message: SHOW_MESSAGES.CREATE.SUCCEED,
-      data: {
-        id: show.id,
-        userId: show.userId,
-        title: show.title,
-        content: show.content,
-        category: show.category,
-        runtime: show.runtime,
-        location: show.location,
-        price: show.price,
-        totalSeat: show.totalSeat,
-        schedules: show.schedules.map(({ date, time, remainSeat }) => ({
-          date,
-          time,
-          remainSeat,
+    try {
+      //공연 생성
+      const show = await this.showRepository.create({
+        ...restOfShow,
+        userId: req.user.id,
+        schedules: schedules.map((schedule) => ({
+          ...schedule,
+          remainSeat: restOfShow.totalSeat,
         })),
-        createdAt: show.createdAt,
-        updatedAt: show.updatedAt,
-        deletedAt: show.deletedAt,
-      },
-    };
+      });
+
+      //생성한 공연 DB에 저장
+      await queryRunner.manager.save(show);
+
+      //이미지 저장
+      const images = imageUrl.map((url) =>
+        this.imagesRepository.create({
+          showId: show.id,
+          imageUrl: url,
+        })
+      );
+
+      // 이미지 병렬로 저장
+      await queryRunner.manager.save(images);
+
+      //트랜잭션 커밋
+      await queryRunner.commitTransaction();
+
+      return {
+        status: HttpStatus.CREATED,
+        message: SHOW_MESSAGES.CREATE.SUCCEED,
+        data: {
+          id: show.id,
+          userId: show.userId,
+          title: show.title,
+          content: show.content,
+          category: show.category,
+          runtime: show.runtime,
+          location: show.location,
+          price: show.price,
+          totalSeat: show.totalSeat,
+          schedules: show.schedules.map(({ date, time, remainSeat }) => ({
+            date,
+            time,
+            remainSeat,
+          })),
+          imageUrl: images.map(({ imageUrl }) => imageUrl),
+          createdAt: show.createdAt,
+          updatedAt: show.updatedAt,
+          deletedAt: show.deletedAt,
+        },
+      };
+    } catch (error) {
+      //트랜잭션 롤백
+      await queryRunner.rollbackTransaction();
+      // 트랜젝션 실패 시 S3 이미지도 롤백
+      await this.imagesService.rollbackS3Image(imageUrl);
+      throw new InternalServerErrorException(SHOW_MESSAGES.CREATE.FAIL);
+    } finally {
+      //DB 커넥션 해제
+      await queryRunner.release();
+    }
   }
 
   /*공연 목록 조회 */

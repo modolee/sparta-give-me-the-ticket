@@ -41,10 +41,15 @@ export const SHOW_MESSAGES = {
       REQUIRED: '공연 시간을 입력해주세요.',
     },
 
+    IMAGE: {
+      REQUIRED: '공연 포스터 주소를 입력해주세요.',
+    },
+
     NOT_FOUND: '공연이 존재하지 않습니다.',
   },
   CREATE: {
     SUCCEED: '공연 생성에 성공했습니다.',
+    FAIL: '공연 생성에 실패했습니다.',
   },
   GET_LIST: {
     SUCCEED: {
