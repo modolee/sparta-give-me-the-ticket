@@ -19,6 +19,9 @@ import { QueueConfig } from 'src/configs/queue.config';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => QueueConfig.createQueueConfig(configService),
     }),
+    BullModule.registerQueue({
+      name: 'ticketQueue',
+    }),
     TypeOrmModule.forFeature([Show, User, Ticket, Bookmark, Schedule]),
   ],
   controllers: [ShowsController],
