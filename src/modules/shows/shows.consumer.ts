@@ -3,7 +3,7 @@ import { Job } from 'bull';
 import { ShowsService } from './shows.service';
 
 @Processor('ticketQueue')
-export class JoinConsumer {
+export class ShowsConsumer {
   constructor(private readonly showsService: ShowsService) {}
 
   @Process('ticket')

@@ -268,17 +268,19 @@ export class ShowsService {
       if (!show) {
         throw new NotFoundException(SHOW_TICKET_MESSAGES.COMMON.SHOW.NOT_FOUND);
       }
-
+      console.log(show);
       // 스케줄이 있는지 확인합니다.
       const schedule = await queryRunner.manager.findOne(Schedule, {
         where: {
           id: scheduleId,
+          showId: showId,
         },
       });
+
       if (!schedule) {
         throw new NotFoundException(SHOW_TICKET_MESSAGES.COMMON.SCHEDULE.NOT_FOUND);
       }
-
+      console.log(schedule);
       //지정 좌석이 있는지 확인합니다.
       if (schedule.remainSeat <= SHOW_TICKETS.COMMON.SEAT.UNSIGNED) {
         throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.SEAT.NOT_ENOUGH);
@@ -338,6 +340,8 @@ export class ShowsService {
       user,
       createTicketDto,
     });
+
+    return job;
   }
 
   /*티켓 환불 */
