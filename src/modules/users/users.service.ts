@@ -10,12 +10,13 @@ import { UserUpdateDto } from './dto/user-update.dto';
 import { PointLog } from 'src/entities/users/point-log.entity';
 import { PointType } from 'src/commons/types/users/point.type';
 import { ChargePointDto } from './dto/charge-point.dto';
+import { Ticket } from 'src/entities/shows/ticket.entity';
+import { Bookmark } from 'src/entities/users/bookmark.entity';
 import { USER_MESSAGES } from 'src/commons/constants/users/user-message.constant';
 import { USER_BOOKMARK_MESSAGES } from 'src/commons/constants/users/user-bookmark-messages.constant';
 
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { Bookmark } from 'src/entities/users/bookmark.entity';
 
 @Injectable()
 export class UsersService {
@@ -27,6 +28,8 @@ export class UsersService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(PointLog)
     private readonly pointLogRepository: Repository<PointLog>,
+    @InjectRepository(Ticket)
+    private readonly ticketRepository: Repository<Ticket>,
     @InjectRepository(Bookmark)
     private readonly bookmarkRepository: Repository<Bookmark>
   ) {}
@@ -43,8 +46,18 @@ export class UsersService {
   }
 
   // 예매 목록 조회
-  async getTicketList() {
-    return;
+  async getTicketList(id: number) {
+    try {
+      const ticket = await this.ticketRepository.find({ where: { userId: id } });
+
+      if (ticket.length === 0) {
+        throw new NotFoundException(USER_MESSAGES.USER.TICKET.GET_LIST.FAILURE.NOT_FOUND);
+      }
+
+      return ticket;
+    } catch (err) {
+      throw new InternalServerErrorException(USER_MESSAGES.USER.TICKET.GET_LIST.FAILURE.FAIL);
+    }
   }
 
   // 북마크 목록 조회

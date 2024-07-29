@@ -87,17 +87,25 @@ export class ShowsService {
   }
 
   /*공연 목록 조회 */
-  async getShowList({ category, search }: GetShowListDto) {
-    const shows = await this.showRepository.find({
+  async getShowList(getShowListDto: GetShowListDto) {
+    const { category, search, page, limit } = getShowListDto;
+
+    const [shows, total] = await this.showRepository.findAndCount({
       where: {
         ...(category && { category }),
         ...(search && { title: Like(`%${search}%`) }),
       },
+      skip: (page - 1) * limit,
+      take: limit,
     });
+
     return {
       status: HttpStatus.CREATED,
       message: SHOW_MESSAGES.GET_LIST.SUCCEED.LIST,
       data: shows,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
     };
   }
 
