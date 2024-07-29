@@ -56,7 +56,7 @@ export class ShowsService {
       //이미지 url 받기
       schedules: schedules.map((schedule) => ({
         ...schedule,
-        remainSeat: Math.floor(restOfShow.totalSeat / schedules.length),
+        remainSeat: restOfShow.totalSeat,
       })),
     });
 
