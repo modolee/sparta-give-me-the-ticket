@@ -7,6 +7,7 @@ import path from 'path';
 export class ImagesService {
   s3: S3;
 
+  // S3 설정
   constructor(private readonly configService: ConfigService) {
     this.s3 = new S3({
       region: this.configService.get('AWS_S3_REGION'),
@@ -95,6 +96,8 @@ export class ImagesService {
   }
 
   // 트랜젝션 실패 시 S3에 등록된 이미지 롤백
+  // 트랜젝션의 catch부분에서 실행
+  // 매개변수로는 이미지 URL 배열을 전달
   async rollbackS3Image(images: string[]) {
     for (const image of images) {
       const existingImageKey = await this.extractKeyFromUrl(image);

@@ -56,6 +56,7 @@ export class ShowsService {
       //이미지 url 받기
       schedules: schedules.map((schedule) => ({
         ...schedule,
+        remainSeat: restOfShow.totalSeat,
       })),
     });
 
@@ -75,9 +76,10 @@ export class ShowsService {
         location: show.location,
         price: show.price,
         totalSeat: show.totalSeat,
-        schedules: show.schedules.map(({ date, time }) => ({
+        schedules: show.schedules.map(({ date, time, remainSeat }) => ({
           date,
           time,
+          remainSeat,
         })),
         createdAt: show.createdAt,
         updatedAt: show.updatedAt,
@@ -161,6 +163,11 @@ export class ShowsService {
     //요청 바디가 비어있는지 확인
     if (Object.keys(updateShowDto).length === 0) {
       throw new BadRequestException(SHOW_MESSAGES.UPDATE.NO_BODY_DATE);
+    }
+
+    //총 좌석수는 제외
+    if ('totalSeat' in updateShowDto) {
+      throw new BadRequestException(SHOW_MESSAGES.UPDATE.TOTAL_SEAT);
     }
 
     // 공연 업데이트
@@ -268,17 +275,20 @@ export class ShowsService {
       if (!show) {
         throw new NotFoundException(SHOW_TICKET_MESSAGES.COMMON.SHOW.NOT_FOUND);
       }
-
+      console.log(show);
       // 스케줄이 있는지 확인합니다.
       const schedule = await queryRunner.manager.findOne(Schedule, {
         where: {
           id: scheduleId,
+          showId: showId,
         },
+        lock: { mode: 'pessimistic_write' }, // 중복 예매를 방지하기 위해 낙관적 락 대신 비관적 락 사용
       });
+
       if (!schedule) {
         throw new NotFoundException(SHOW_TICKET_MESSAGES.COMMON.SCHEDULE.NOT_FOUND);
       }
-
+      console.log(schedule);
       //지정 좌석이 있는지 확인합니다.
       if (schedule.remainSeat <= SHOW_TICKETS.COMMON.SEAT.UNSIGNED) {
         throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.SEAT.NOT_ENOUGH);
@@ -301,6 +311,10 @@ export class ShowsService {
       // 사용자의 포인트 차감
       user.point -= show.price;
       await queryRunner.manager.save(User, user);
+
+      if (schedule.remainSeat <= SHOW_TICKETS.COMMON.SEAT.UNSIGNED) {
+        throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.SEAT.NOT_ENOUGH);
+      }
 
       const ticket = queryRunner.manager.create(Ticket, {
         userId: user.id,
@@ -333,12 +347,22 @@ export class ShowsService {
 
   /* 티켓 예매 동시성 처리 */
   async addTicketQueue(showId: number, createTicketDto: CreateTicketDto, user: User) {
-    const job = await this.ticketQueue.add('ticket', {
-      showId,
-      user,
-      createTicketDto,
-    });
+    const job = await this.ticketQueue.add(
+      'ticket',
+      {
+        showId,
+        user,
+        createTicketDto,
+      },
+      {
+        removeOnComplete: true,
+        removeOnFail: true,
+      }
+    );
+
+    return job;
   }
+  //티켓이랑 스케줄 아이디 잘못 입력할 시 redis에 들어간다. 이런 버그 수정을 하는 노하우가 있습니까?
 
   /*티켓 환불 */
   async refundTicket(showId: number, ticketId: number, user: User) {

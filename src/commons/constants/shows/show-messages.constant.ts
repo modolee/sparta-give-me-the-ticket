@@ -58,6 +58,7 @@ export const SHOW_MESSAGES = {
   UPDATE: {
     SUCCEED: '공연 수정에 성공했습니다.',
     NO_BODY_DATE: '수정 할 정보를 입력해 주세요.',
+    TOTAL_SEAT: '총 좌석수는 수정할 수 없습니다.',
   },
   DELETE: {
     SUCCEED: '공연 삭제에 성공했습니다.',

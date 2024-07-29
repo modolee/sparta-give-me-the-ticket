@@ -1,11 +1,18 @@
-import { Injectable, Inject } from '@nestjs/common';
+import {
+  Injectable,
+  Catch,
+  ArgumentsHost,
+  HttpException,
+  HttpStatus,
+  BadRequestException,
+} from '@nestjs/common';
 import { CreateTradeDto } from './dto/create-trade.dto';
 import { UpdateTradeDto } from './dto/update-trade.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { NotFoundException } from '@nestjs/common';
 import { Redis } from 'ioredis';
-
+import { Inject } from '@nestjs/common';
 //types
 import { Role } from 'src/commons/types/users/user-role.type';
 
@@ -93,6 +100,7 @@ export class TradesService {
 
     return closeTime;
   }
+
   //티켓이 활성 상태임을 알려주는 함수
   async checkRedisTicket(getTicketId: number) {
     const ticket = await this.redisClient.get(String(getTicketId));
@@ -101,13 +109,14 @@ export class TradesService {
   }
 
   //=========ConvenienceFunction======================
+
   //중고 거래 목록 보기//완료 (검증 대부분 완료)
   async getList() {
     let trade_list = await this.TradeRepository.find({
-      select: { id: true, showId: true, price: true },
+      select: { id: true, ticketId: true, createdAt: true, closedAt: true },
     });
 
-    //중고 거래 목록 조회
+    //중고 거래 목록 조회 //테스트 완료
     //trade_list에 공연에서 가져온 주소값을 병합
     trade_list = await Promise.all(
       trade_list.map(async (trade) => {
@@ -118,8 +127,11 @@ export class TradesService {
 
         //show에서 장소와 이름을 추가,schedule에서 날짜와 시간을 추가
         if (ticket) {
+          trade['title'] = ticket.title;
+          trade['price'] = ticket.price;
           trade['date'] = ticket.date;
           trade['time'] = ticket.time;
+          delete trade.ticketId;
         }
         return trade;
       })
@@ -131,76 +143,78 @@ export class TradesService {
     return trade_list;
   }
 
-  //중고 거래 상세 보기 //완료 (검증 대부분 완료)
+  //중고 거래 상세 보기 //수정 필요 리스트가 아님 (검증 대부분 완료) //테스트 완료
   async getTradeDetail(tradeId: number) {
-    let trade_list = await this.TradeRepository.find({
-      select: { id: true, showId: true, price: true, sellerId: true },
-    });
+    const trade = await this.TradeRepository.findOne({ where: { id: tradeId } });
+    if (!trade) throw new NotFoundException('존재하지 않는 거래입니다.');
+    const show = await this.ShowRepository.findOne({ where: { id: trade.showId } });
+    if (!show) throw new NotFoundException('존재하지 않는 공연입니다.');
+    const ticket = await this.TicketRepository.findOne({ where: { id: trade.ticketId } });
+    if (!ticket) throw new NotFoundException('존재하지 않는 티켓입니다.');
 
-    //trade_list에 공연에서 가져온 주소값을 병합
-    trade_list = await Promise.all(
-      trade_list.map(async (trade) => {
-        //show를 조회
-        const show = await this.ShowRepository.findOne({
-          where: { id: trade.showId },
-        });
-        //스케쥴을 조회
-        const schedule = await this.ScheduleRepository.findOne({
-          where: { id: trade.showId },
-        });
+    trade['title'] = show.title;
+    trade['origin_price'] = show.price;
+    trade['location'] = ticket.location;
+    trade['date'] = ticket.date;
+    trade['time'] = ticket.time;
+    delete trade.ticketId;
+    delete trade.flag;
+    delete trade.showId;
 
-        //show에서 장소와 이름, 가격을 추가,schedule에서 날짜와 시간을 추가
-        if (show) {
-          trade['location'] = show.location;
-          trade['title'] = show.title;
-          trade['origin_price'] = show.price;
-          trade['date'] = schedule.date;
-          trade['time'] = schedule.time;
-        }
-        return trade;
-      })
-    );
-
-    return trade_list;
+    return trade;
   }
 
-  //중고거래 생성 함수 //완료(검증 대부분 완료)
-  //sellerId는 인증을 통해 받게 될 예정 //sellerId,ticket_id,showId,price 까지 구함, closedAt만 구하면 됨(반쯤 구한듯 하다)
+  //중고거래 생성 함수 //완료(검증 대부분 완료) 테스트 완료
   async createTrade(createTradeDto: CreateTradeDto, sellerId: number) {
     const { ticketId, price } = createTradeDto;
 
     //검증 타일 START==================================================
 
-    //티켓이 존재하는지 검증
+    //1.데이터 베이스 검증
+
+    //1-1 티켓이 존재하는지 검증
     const ticket = await this.TicketRepository.findOne({ where: { id: ticketId } });
+    const { date, time } = ticket;
     if (!ticket) throw new NotFoundException('해당 티켓이 존재하지 않습니다');
-
-    //해당 티켓이 사용 가능한지 검증 (레디스 검증)
-    if (!(await this.redisClient.get(String(ticketId))))
-      throw new Error('해당 티켓은 환불도 거래도 불가능합니다!');
-
-    //가격이 기존의 티켓 가격보다 같거나 낮은지 검증
-    if (ticket.price < price) {
-      throw new Error('원래 티켓 가격보다 높게 설정할 수 없습니다!');
-    }
-
-    //본인의 티켓인지 검증
-    if (ticket.userId !== sellerId) {
-      return new Error('본인의 티켓만 판매 가능합니다!');
-    }
 
     const showId = ticket.showId;
 
-    //해당 공연이 존재하는지 검증
+    //1-2 해당 공연이 존재하는지 검증
     const show = await this.ShowRepository.findOne({ where: { id: showId } });
     if (!show) throw new NotFoundException('해당 공연이 존재하지 않습니다');
 
+    //1-3 해당 일정이 존재하는지 검증
     const schedule = await this.ScheduleRepository.findOne({
       where: { showId: showId, time: ticket.time },
     });
 
-    //해당 일정이 존재하는지 검증
     if (!schedule) throw new NotFoundException('해당 일정이 존재하지 않습니다');
+
+    //1-4 이미 이 티켓이 중고거래에 올라와있는지 검증
+    const trade = await this.TradeRepository.find({ where: { ticketId: ticketId } });
+
+    if (trade[0]) return { message: '해당 티켓은 이미 중고로 올라왔습니다.' };
+
+    //해당 티켓이 사용 가능한지 검증 (레디스 검증)
+    if (
+      !(await this.redisClient.get(String(ticketId))) &&
+      new Date().getTime() >=
+        this.combineDateAndTime(String(date), time).getTime() - 60 * 1000 * 60 * 2
+    )
+      throw new BadRequestException('해당 티켓은 환불도 거래도 불가능합니다!');
+
+    //가격이 기존의 티켓 가격보다 같거나 낮은지 검증
+    if (ticket.price < price) {
+      throw new BadRequestException(
+        `원래 티켓 가격보다 높게 설정할 수 없습니다! 원래가격: ${show.price}, 현재가격 ${ticket.price}`
+      );
+    }
+
+    //본인의 티켓인지 검증
+    if (ticket.userId !== sellerId) {
+      return new BadRequestException('본인의 티켓만 판매 가능합니다!');
+    }
+
     //검증 타일 END==================================================
 
     //정책에 따라 티켓의 가격을 중고거래 게시된 시점의 가격으로 고정
@@ -213,16 +227,22 @@ export class TradesService {
     // return { sellerId, ticketId, showId, price, closedAt };
   }
 
-  //중고 거래 수정 메서드 //완료(검증 대부분 완료)
-  async updateTrade(updateTradeDto: UpdateTradeDto, userId: number) {
-    const { price, tradeId } = updateTradeDto;
+  //중고 거래 수정 메서드 //완료(검증 대부분 완료)  //테스트 완료
+  async updateTrade(tradeId, updateTradeDto: UpdateTradeDto, userId: number) {
+    const { price } = updateTradeDto;
 
     const trade = await this.TradeRepository.findOne({ where: { id: tradeId } });
     if (!trade) throw new NotFoundException(`해당 거래가 존재하지 않습니다`);
 
-    if (trade.sellerId !== userId) throw Error('해당 중고거래의 게시자가 아닙니다');
+    if (trade.sellerId !== userId)
+      throw new BadRequestException('해당 중고거래의 게시자가 아닙니다');
 
-    return await this.TradeRepository.update(tradeId, { price });
+    //티켓과 중고거래의 가격 둘다 변경(어차피 참고하는 것은 티켓의 가격뿐이기에, 추후 수정 예정, 엔티티에서 중고거래의 가격은 사라져도 될것으로 보임)
+    await this.TradeRepository.update({ id: tradeId }, { price: price });
+    await this.TicketRepository.update({ id: trade.ticketId }, { price: price });
+
+    const afterTrade = await this.TradeRepository.findOne({ where: { id: tradeId } });
+    return afterTrade;
   }
 
   //중고 거래 삭제 메서드  //완료(검증 대부분 완료)
@@ -231,7 +251,7 @@ export class TradesService {
     if (!trade) throw new NotFoundException(`해당 거래가 존재하지 않습니다`);
 
     if (trade.sellerId !== userId) {
-      throw Error('해당 중고거래의 게시자가 아닙니다');
+      throw new BadRequestException('해당 중고거래의 게시자가 아닙니다');
     }
 
     //모든 검증이 끝난 뒤 삭제 로직
@@ -280,12 +300,31 @@ export class TradesService {
   }
 
   //=======================테스트 함수 START====================
-  async test(ticketId: number, userId: number) {
-    return;
+  async hello(a: number) {
+    return { message: 'hello' };
   }
-  async make_admin(userId: number) {
-    const user = await this.UserRepository.update({ id: userId }, { role: Role.ADMIN });
-    return { message: '성공적으로 관리자로 권한이 변경되었습니다.' };
+
+  async test() {
+    console.log('bbbbbbbbbbbbbbbbbbbbbbbbb');
+    return { message: '해결 완료' };
+  }
+
+  async changeRole(userId: number) {
+    const user = await this.UserRepository.findOne({ where: { id: userId } });
+
+    if (user.role === Role.USER) {
+      await this.UserRepository.update({ id: userId }, { role: Role.ADMIN });
+      return { message: '성공적으로 관리자로 권한이 변경되었습니다.' };
+    } else if (user.role === Role.ADMIN) {
+      await this.UserRepository.update({ id: userId }, { role: Role.USER });
+      return { message: '성공적으로 유저로 권한이 변경되었습니다.' };
+    }
+  }
+
+  async changRemainSeat(scheduleId) {
+    const seat: number = 45;
+    await this.ScheduleRepository.update({ id: scheduleId }, { remainSeat: seat });
+    return { message: `좌석이 ${seat}로 수정되었습니다.` };
   }
   //=======================테스트 함수 END====================
 }
