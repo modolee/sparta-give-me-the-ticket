@@ -3,11 +3,13 @@ import { Job } from 'bull';
 import { ShowsService } from './shows.service';
 
 @Processor('ticketQueue')
-export class JoinConsumer {
+export class ShowsConsumer {
   constructor(private readonly showsService: ShowsService) {}
 
   @Process('ticket')
   async getJoinQueue(job: Job) {
-    await this.showsService.createTicket(job.data.showId, job.data.user, job.data.createTicketDto);
+    const { showId, createTicketDto, user } = job.data;
+    const ticket = await this.showsService.createTicket(showId, createTicketDto, user);
+    return ticket;
   }
 }
