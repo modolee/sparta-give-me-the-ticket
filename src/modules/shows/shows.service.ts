@@ -23,6 +23,8 @@ import { SHOW_MESSAGES } from 'src/commons/constants/shows/show-messages.constan
 import { GetShowListDto } from './dto/get-show-list.dto';
 import { CreateTicketDto } from './dto/create-ticket-dto';
 import { Schedule } from 'src/entities/shows/schedule.entity';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
 
 @Injectable()
 export class ShowsService {
@@ -30,6 +32,7 @@ export class ShowsService {
     @InjectRepository(Show) private showRepository: Repository<Show>,
     @InjectRepository(Bookmark) private bookmarkRepository: Repository<Bookmark>,
     @InjectRepository(Schedule) private scheduleRepository: Repository<Schedule>,
+    @InjectQueue('ticketQueue') private ticketQueue: Queue,
     private dataSource: DataSource
   ) {}
 
@@ -270,7 +273,6 @@ export class ShowsService {
       const schedule = await queryRunner.manager.findOne(Schedule, {
         where: {
           id: scheduleId,
-          showId,
         },
       });
       if (!schedule) {
@@ -327,6 +329,15 @@ export class ShowsService {
       await queryRunner.release();
       throw error;
     }
+  }
+
+  /* 티켓 예매 동시성 처리 */
+  async addTicketQueue(showId: number, createTicketDto: CreateTicketDto, user: User) {
+    const job = await this.ticketQueue.add('ticket', {
+      showId,
+      user,
+      createTicketDto,
+    });
   }
 
   /*티켓 환불 */

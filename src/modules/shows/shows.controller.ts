@@ -105,11 +105,11 @@ export class ShowsController {
   @Post(':showId/bookmark')
   @HttpCode(HttpStatus.CREATED)
   async createBookmark(@Param('showId') showId: number, @Req() req: any) {
-    const user: User = req.user;
-    await this.showsService.createBookmark(showId, user);
+    const bookmark = await this.showsService.createBookmark(showId, req.user);
     return {
       status: HttpStatus.CREATED,
       message: USER_BOOKMARK_MESSAGES.COMMON.BOOKMARK.SUCCESS.COMPLETED,
+      bookmarkId: bookmark.id,
     };
   }
 
@@ -147,8 +147,7 @@ export class ShowsController {
     @Body() createTicketDto: CreateTicketDto,
     @Req() req: any
   ) {
-    const user: User = req.user;
-    return this.showsService.createTicket(showId, createTicketDto, user);
+    return this.showsService.createTicket(showId, createTicketDto, req.user);
   }
   /**
    * 티켓 환불
