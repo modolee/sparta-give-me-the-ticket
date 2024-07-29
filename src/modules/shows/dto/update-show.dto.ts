@@ -14,7 +14,6 @@ class ShowDto extends PickType(Show, [
   'runtime',
   'location',
   'price',
-  'totalSeat',
 ] as const) {}
 export class UpdateShowDto extends PartialType(ShowDto) {
   @IsString()
@@ -34,9 +33,6 @@ export class UpdateShowDto extends PartialType(ShowDto) {
 
   @IsNumber()
   price?: number;
-
-  @IsNumber()
-  totalSeat?: number;
 
   @ValidateNested()
   @Type(() => CreateScheduleDto)
