@@ -8,6 +8,8 @@ export class ShowsConsumer {
 
   @Process('ticket')
   async getJoinQueue(job: Job) {
-    await this.showsService.createTicket(job.data.showId, job.data.user, job.data.createTicketDto);
+    const { showId, createTicketDto, user } = job.data;
+    const ticket = await this.showsService.createTicket(showId, createTicketDto, user);
+    return ticket;
   }
 }
