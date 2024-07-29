@@ -56,6 +56,7 @@ export class ShowsService {
       //이미지 url 받기
       schedules: schedules.map((schedule) => ({
         ...schedule,
+        remainSeat: Math.floor(restOfShow.totalSeat / schedules.length),
       })),
     });
 
@@ -75,9 +76,10 @@ export class ShowsService {
         location: show.location,
         price: show.price,
         totalSeat: show.totalSeat,
-        schedules: show.schedules.map(({ date, time }) => ({
+        schedules: show.schedules.map(({ date, time, remainSeat }) => ({
           date,
           time,
+          remainSeat,
         })),
         createdAt: show.createdAt,
         updatedAt: show.updatedAt,
@@ -161,6 +163,11 @@ export class ShowsService {
     //요청 바디가 비어있는지 확인
     if (Object.keys(updateShowDto).length === 0) {
       throw new BadRequestException(SHOW_MESSAGES.UPDATE.NO_BODY_DATE);
+    }
+
+    //총 좌석수는 제외
+    if ('totalSeat' in updateShowDto) {
+      throw new BadRequestException(SHOW_MESSAGES.UPDATE.TOTAL_SEAT);
     }
 
     // 공연 업데이트
