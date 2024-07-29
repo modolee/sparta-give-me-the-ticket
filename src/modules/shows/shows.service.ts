@@ -262,7 +262,6 @@ export class ShowsService {
       const schedule = await queryRunner.manager.findOne(Schedule, {
         where: {
           id: scheduleId,
-          showId,
         },
       });
       if (!schedule) {
@@ -320,6 +319,8 @@ export class ShowsService {
       throw error;
     }
   }
+
+  /* 티켓 예매 동시성 처리 */
 
   /*티켓 환불 */
   async refundTicket(showId: number, ticketId: number, user: User) {
