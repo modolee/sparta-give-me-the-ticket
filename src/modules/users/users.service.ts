@@ -52,10 +52,16 @@ export class UsersService {
     try {
       const bookmark = await this.bookmarkRepository.find({ where: { userId: id } });
 
+      if (bookmark.length === 0) {
+        throw new NotFoundException(
+          USER_BOOKMARK_MESSAGES.COMMON.BOOKMARK.GET_LIST.FAILURE.NOT_FOUND
+        );
+      }
+
       return bookmark;
     } catch (err) {
       throw new InternalServerErrorException(
-        USER_BOOKMARK_MESSAGES.COMMON.BOOKMARK.GET_LIST.FAILURE
+        USER_BOOKMARK_MESSAGES.COMMON.BOOKMARK.GET_LIST.FAILURE.FAIL
       );
     }
   }
