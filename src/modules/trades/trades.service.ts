@@ -5,7 +5,9 @@ import {
   HttpException,
   HttpStatus,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
+import { addHours, startOfDay, subDays, subHours } from 'date-fns';
 import { CreateTradeDto } from './dto/create-trade.dto';
 import { UpdateTradeDto } from './dto/update-trade.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -15,9 +17,12 @@ import { Redis } from 'ioredis';
 import { Inject } from '@nestjs/common';
 import { SERVER } from '../../commons/constants/server.constants';
 import { MESSAGES } from 'src/commons/constants/trades/messages';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
 
 //types
 import { Role } from 'src/commons/types/users/user-role.type';
+import { TicketStatus } from 'src/commons/types/shows/ticket.type';
 import { number } from 'joi';
 
 //entities
@@ -29,7 +34,7 @@ import { Ticket } from 'src/entities/shows/ticket.entity';
 import { User } from 'src/entities/users/user.entity';
 
 //DataSource File
-import { DataSource } from 'typeorm';
+import { DataSource, Like } from 'typeorm';
 // const AppDataSource = new DataSource({
 //   type: 'mysql',
 //   host: SERVER.HOST,
@@ -65,6 +70,7 @@ export class TradesService {
     private TicketRepository: Repository<Ticket>,
     @InjectRepository(User)
     private UserRepository: Repository<User>,
+    private dataSource: DataSource,
     @Inject('REDIS_CLIENT') private redisClient: Redis
   ) {}
 
@@ -141,7 +147,7 @@ export class TradesService {
 
   //=========ConvenienceFunction======================
 
-  //중고 거래 목록 보기//완료 (검증 대부분 완료)
+  //<1> 중고 거래 목록 보기//완료 (검증 대부분 완료)
   async getList() {
     let trade_list = await this.TradeRepository.find({
       select: { id: true, ticketId: true, createdAt: true, closedAt: true },
@@ -174,7 +180,7 @@ export class TradesService {
     return trade_list;
   }
 
-  //중고 거래 상세 보기 //수정 필요 리스트가 아님 (검증 대부분 완료) //테스트 완료
+  //<2> 중고 거래 상세 보기 //수정 필요 리스트가 아님 (검증 대부분 완료) //테스트 완료
   async getTradeDetail(tradeId: number) {
     const trade = await this.TradeRepository.findOne({ where: { id: tradeId } });
     if (!trade) throw new NotFoundException(MESSAGES.TRADES.NOT_EXISTS.TRADE);
@@ -195,7 +201,7 @@ export class TradesService {
     return trade;
   }
 
-  //중고거래 생성 함수 //완료(검증 대부분 완료) 테스트 완료
+  //<3> 중고거래 생성 함수 //완료(검증 대부분 완료) 테스트 완료
   async createTrade(createTradeDto: CreateTradeDto, sellerId: number) {
     const { ticketId, price } = createTradeDto;
 
@@ -258,7 +264,7 @@ export class TradesService {
     // return { sellerId, ticketId, showId, price, closedAt };
   }
 
-  //중고 거래 수정 메서드 //완료(검증 대부분 완료)  //테스트 완료
+  //<4> 중고 거래 수정 메서드 //완료(검증 대부분 완료)  //테스트 완료
   async updateTrade(tradeId, updateTradeDto: UpdateTradeDto, userId: number) {
     const { price } = updateTradeDto;
 
@@ -276,7 +282,7 @@ export class TradesService {
     return afterTrade;
   }
 
-  //중고 거래 삭제 메서드  //완료(검증 대부분 완료)
+  //<5> 중고 거래 삭제 메서드  //완료(검증 대부분 완료)
   async deleteTrade(tradeId: number, userId: number) {
     const trade = await this.TradeRepository.findOne({ where: { id: tradeId } });
     if (!trade) throw new NotFoundException(MESSAGES.TRADES.NOT_EXISTS.TRADE);
@@ -289,56 +295,84 @@ export class TradesService {
     return await this.TradeRepository.delete(tradeId);
   }
 
-  //티켓 구매 메서드 (buyerId는 기존의 userId와 같다) (현재 수정중)
+  //<6> 티켓 구매 메서드 (buyerId는 기존의 userId와 같다) (현재 수정중)
   async createTicket(tradeId: number, buyerId: number) {
-    //쿼리 러너문 만들기
-    // const queryRunner = this.dataSource.createQueryRunner();
-    // await queryRunner.connect();
-    // await queryRunner.startTransaction();
-
-    // try {
-
-    // }catch(err) {
-
-    // }
-
     //해당 거래 존재 확인
+
     const trade = await this.TradeRepository.findOne({ where: { id: tradeId } });
     if (!trade) throw new NotFoundException(MESSAGES.TRADES.NOT_EXISTS.TRADE);
 
-    let ticket = await this.TicketRepository.findOne({ where: { id: trade.ticketId } });
+    //해당 티켓 존재 확인
 
-    //buyer의 유저 정보 가져오기
+    let ticket = await this.TicketRepository.findOne({ where: { id: trade.ticketId } });
+    if (!ticket) throw new NotFoundException(MESSAGES.TRADES.NOT_EXISTS.TICKET);
+
+    //구매자와 판매자의 유저 정보 가져오기
+
+    const seller = await this.UserRepository.findOne({ where: { id: ticket.userId } });
+    if (!seller) throw new NotFoundException(MESSAGES.TRADES.NOT_EXISTS.SELLER);
     const buyer = await this.UserRepository.findOne({ where: { id: buyerId } });
+    if (!buyer) throw new NotFoundException(MESSAGES.TRADES.NOT_EXISTS.BUYER);
 
     //현재 가장 높은 ticketId보다 1 높은 값 (새로 재발급 하기 위해서)
     let query = await this.TicketRepository.query('SELECT MAX(id) AS maxId FROM tickets');
     const newId = query[0].maxId + 1;
 
-    //새로운 티켓 id를 레디스에 저장
-    this.addRedisTicket(String(newId), trade.closedAt);
+    //<6-1>쿼리 러너문 만들기=========트랜잭션 시작=========가져온 변수:trade,ticket,seller,buyer,===============================================
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      //새로운 티켓 id를 레디스에 저장
+      this.addRedisTicket(String(newId), trade.closedAt);
+
+      //검증 타일===================
+      if (buyer.point < ticket.price)
+        throw new BadRequestException(MESSAGES.TRADES.NOT_ENOUGH.MONEY);
+      buyer.point -= ticket.price;
+      await queryRunner.manager.save(User, buyer);
+
+      //구매자에게 전할 새로운 티켓을 생성하고 새로운 티켓을 데이터베이스에 저장
+      const newTicket = ticket;
+      newTicket.userId = buyerId;
+      newTicket.nickname = buyer.nickname;
+
+      await queryRunner.manager.save(Ticket, newTicket);
+
+      await queryRunner.commitTransaction();
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      return { message: MESSAGES.TRADES.FAILED.PURCHASE };
+    } finally {
+      await queryRunner.release();
+    }
 
     //티켓 재발급 로직==================
-    //새로운 티켓을 생성하고 그 정보를 데이터베이스에 저장
-    ticket.userId = buyerId;
-
-    await this.TicketRepository.save({
-      userId: ticket.userId,
-      showId: ticket.showId,
-      scheduleId: ticket.scheduleId,
-      nickname: buyer.nickname,
-      title: ticket.title,
-      time: ticket.time,
-      runtime: ticket.runtime,
-      date: ticket.date,
-      location: ticket.location,
-      price: ticket.price,
-    });
 
     // //기존에 존재하는 id를 레디스에서 제거
     this.deleteRedisTicket(String(trade.ticketId));
 
     return { newId };
+  }
+
+  //중고 거래 로그 조회
+  async getLogs(userId: number) {
+    const buyLogs = await this.TradeLogRepository.find({
+      where: { buyerId: userId },
+    });
+    const sellLogs = await this.TradeLogRepository.find({
+      where: { sellerId: userId },
+    });
+
+    // buyLogs와 sellLogs 병합
+    const logs = [...buyLogs, ...sellLogs];
+
+    // 병합된 배열을 id 기준으로 정렬
+    logs.sort((a, b) => a.id - b.id);
+
+    if (!logs[0]) return { message: '중고거래 로그가 존재하지 않습니다!' };
+    else return logs;
   }
 
   //=======================테스트 함수 START====================

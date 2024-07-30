@@ -8,6 +8,11 @@ export const MESSAGES = {
       SHOW: '존재하지 않는 공연입니다.',
       TICKET: '존재하지 않는 티켓입니다.',
       SCHEDULE: '존재하지 않는 공연 일정입니다.',
+      BUYER: '구매자가 존재하지 않습니다',
+      SELLER: '판매자가 존재하지 않습니다',
+    },
+    NOT_ENOUGH: {
+      MONEY: '금액이 충분하지 않습니다',
     },
     ALREADY_EXISTS: {
       IN_TRADE_TICKET: '해당 티켓은 이미 중고로 올라왔습니다.',
@@ -33,6 +38,9 @@ export const MESSAGES = {
     CAN_NOT_UPDATE: { TICKET_PRICE: `원래 티켓 가격보다 높게 설정할 수 없습니다!` },
     ERROR_OCCUR: {
       REDIS: 'Redis에서 에러 발생',
+    },
+    FAILED: {
+      PURCHASE: '구매에 실패했습니다',
     },
   },
   REDIS: {
