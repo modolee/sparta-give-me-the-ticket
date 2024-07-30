@@ -38,7 +38,7 @@ export class AuthController {
    * @returns
    */
   @UseGuards(KakaoAuthGuard)
-  @Post('/kakao')
+  @Get('/kakao')
   async kakaoSignIn(@Req() req: any, @Res() res: any) {
     console.log('controller : ', req.user);
     const { accessToken, refreshToken } = await this.authService.signIn(req.user);
