@@ -190,7 +190,7 @@ export class ShowsService {
   async updateShow(showId: number, updateShowDto: UpdateShowDto) {
     const show = await this.showRepository.findOne({
       where: { id: showId },
-      relations: { schedules: true, images: true },
+      relations: { images: true },
     });
 
     // 공연 존재 여부 확인
@@ -219,19 +219,12 @@ export class ShowsService {
 
       // 이미지 수정
       if (updateShowDto.imageUrl) {
-        if (!Array.isArray(updateShowDto.imageUrl)) {
-          throw new BadRequestException('이미지url이 배열이 아닙니다.');
-        }
         const existingImageUrls = show.images.map((image) => image.imageUrl);
         const newImageUrls = updateShowDto.imageUrl;
 
-        console.log('새로 받은 이미지 : ', newImageUrls);
-        console.log('기존 이미지 배열 : ', existingImageUrls);
         const imagesToDelete = existingImageUrls.filter((url) => !newImageUrls.includes(url));
         const imagesToAdd = newImageUrls.filter((url) => !existingImageUrls.includes(url));
 
-        console.log('삭제할 이미지 : ', imagesToDelete);
-        console.log('추가할 이미지 : ', imagesToAdd);
         // S3에서 삭제
         if (imagesToDelete.length > 0) {
           await this.imagesService.rollbackS3Image(imagesToDelete);
@@ -242,27 +235,25 @@ export class ShowsService {
             { imageUrl: In(imagesToDelete) },
             { deletedAt: new Date() }
           );
-
-          // DB에서 삭제할 이미지 제거
-          show.images = show.images.filter((image) => !imagesToDelete.includes(image.imageUrl));
         }
 
         // 새 이미지 추가
         if (imagesToAdd.length > 0) {
           const newImages = imagesToAdd.map((url) => {
             return this.imagesRepository.create({
-              show,
+              showId,
               imageUrl: url,
             });
           });
-          console.log('show : ', show);
           // 새 이미지 추가
           await queryRunner.manager.save(newImages);
-          console.log('새 이미지 추가:', newImages);
         }
       }
 
+      //show안에 있는 images요소 삭제
+      delete show.images;
       // 공연 변경 사항 저장
+      console.log(show);
       await queryRunner.manager.save(show);
 
       // 트랜잭션 커밋
