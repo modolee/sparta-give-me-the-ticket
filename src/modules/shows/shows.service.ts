@@ -282,7 +282,7 @@ export class ShowsService {
           id: scheduleId,
           showId: showId,
         },
-        lock: { mode: 'pessimistic_write' }, // 중복 예매를 방지하기 위해 낙관적 락 대신 비관적 락 사용
+        lock: { mode: 'pessimistic_write' }, // 중복 예매를 방지하기 위해  비관적 락 사용
       });
 
       if (!schedule) {
@@ -295,7 +295,7 @@ export class ShowsService {
       }
 
       //date와 time을 하나의 showTime으로 연결합니다.
-      const showTime = `${String(schedule.date)}T${String(schedule.time)}`;
+      const showTime = `${String(schedule.date)}T${String(schedule.time)}.000Z`;
 
       // 공연 시간 기준 2시간 전
       const twoHoursBeforeShowTime = subHours(showTime, 2);
@@ -358,11 +358,12 @@ export class ShowsService {
         removeOnComplete: true,
         removeOnFail: true,
       }
+      // 큐에서 작업을 실행 한 후 redis에 남아있지 않게 하는 옵션
     );
 
     return job;
   }
-  //티켓이랑 스케줄 아이디 잘못 입력할 시 redis에 들어간다. 이런 버그 수정을 하는 노하우가 있습니까?
+  //티켓이랑 스케줄 아이디 잘못 입력할 시 redis에 들어간다. 이런 버그 수정을 하는 노하우가 있습니까? 그리고 4명이 성공했다고 뜨는데 정작 db에는 3명만 ....
 
   /*티켓 환불 */
   async refundTicket(showId: number, ticketId: number, user: User) {
