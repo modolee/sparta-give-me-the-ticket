@@ -4,10 +4,10 @@ import { MESSAGES } from 'src/commons/constants/trades/messages';
 
 export declare class CreateTradeDto {
   @IsNumber()
-  @IsNotEmpty({ message: MESSAGES.TRADE.NOT_INPUT.TICKETID })
+  @IsNotEmpty({ message: MESSAGES.TRADES.NOT_INPUT.TICKET_ID })
   ticketId: number;
 
   @IsNumber()
-  @IsNotEmpty({ message: MESSAGES.TRADE.NOT_INPUT.PRICE })
+  @IsNotEmpty({ message: MESSAGES.TRADES.NOT_INPUT.PRICE })
   price: number;
 }

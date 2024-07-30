@@ -19,6 +19,7 @@ import { UpdateTradeDto } from './dto/update-trade.dto';
 import { User } from 'src/entities/users/user.entity';
 import { number } from 'joi';
 import { TestDto } from './dto/test-dto';
+import { MESSAGES } from 'src/commons/constants/trades/messages';
 
 @Controller('trades')
 export class TradesController {
@@ -89,7 +90,7 @@ export class TradesController {
   async deleteTrade(@Param('tradeId', ParseIntPipe) tradeId, @Req() req: { user: User }) {
     const user = req.user;
     await this.tradesService.deleteTrade(tradeId, user.id);
-    return { message: '성공적으로 거래가 제거 되었습니다!' };
+    return { message: MESSAGES.TRADES.SUCCESSFULLY_DELETE.TRADE };
   }
 
   //중고 거래 구매
