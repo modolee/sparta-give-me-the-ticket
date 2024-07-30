@@ -1,7 +1,7 @@
 import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { configModuleValidationSchema } from 'src/configs/env-validation.config';
 import { typeOrmModuleOptions } from 'src/configs/database.config';
@@ -11,12 +11,28 @@ import { ShowsModule } from './modules/shows/shows.module';
 import { TradesModule } from './modules/trades/trades.module';
 import { ImagesModule } from './modules/images/images.module';
 import { RedisModule } from './modules/redis/redis.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { BullModule } from '@nestjs/bull';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       validationSchema: configModuleValidationSchema,
+    }),
+    EventEmitterModule.forRoot({
+      global: true,
+    }),
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        redis: {
+          host: configService.get<string>('REDIS_HOST'),
+          port: configService.get<number>('REDIS_PORT'),
+          password: configService.get<string>('REDIS_PASSWORD'),
+        },
+      }),
     }),
     TypeOrmModule.forRootAsync(typeOrmModuleOptions),
     AuthModule,
