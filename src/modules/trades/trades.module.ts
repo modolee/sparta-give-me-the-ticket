@@ -27,6 +27,6 @@ import { User } from 'src/entities/users/user.entity';
   ],
   controllers: [TradesController],
   providers: [TradesService],
-  exports: [TypeOrmModule, BullModule],
+  exports: [TypeOrmModule],
 })
 export class TradesModule {}
