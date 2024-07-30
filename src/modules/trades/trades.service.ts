@@ -341,6 +341,25 @@ export class TradesService {
     return { newId };
   }
 
+  //중고 거래 로그 조회
+  async getLogs(userId: number) {
+    const buyLogs = await this.TradeLogRepository.find({
+      where: { buyerId: userId },
+    });
+    const sellLogs = await this.TradeLogRepository.find({
+      where: { sellerId: userId },
+    });
+
+    // buyLogs와 sellLogs 병합
+    const logs = [...buyLogs, ...sellLogs];
+
+    // 병합된 배열을 id 기준으로 정렬
+    logs.sort((a, b) => a.id - b.id);
+
+    if (!logs[0]) return { message: '중고거래 로그가 존재하지 않습니다!' };
+    else return logs;
+  }
+
   //=======================테스트 함수 START====================
   async hello(a: number) {
     return { message: 'hello' };

@@ -51,11 +51,12 @@ export class TradesController {
 
   //테스트 메서드==============================
 
-  //첫 주솟값을 param으로 받는 콘트롤러 메서드
-  //중고 거래 상세 조회
-  @Get('/:tradeId')
-  async getTradeDetail(@Param('tradeId', ParseIntPipe) tradeId) {
-    return await this.tradesService.getTradeDetail(tradeId);
+  //중고 거래 로그 종회
+  @Get('tradelogs')
+  @UseGuards(AuthGuard('jwt'))
+  async getLogs(@Req() req: { user: User }) {
+    const user = req.user;
+    return await this.tradesService.getLogs(user.id);
   }
 
   //중고 거래 목록 조회
@@ -72,6 +73,12 @@ export class TradesController {
     return await this.tradesService.createTrade(createTradeDto, user.id);
   }
 
+  //중고 거래 상세 조회
+  @Get('/:tradeId')
+  async getTradeDetail(@Param('tradeId', ParseIntPipe) tradeId) {
+    return await this.tradesService.getTradeDetail(tradeId);
+  }
+  //첫 주솟값을 param으로 받는 콘트롤러 메서드
   //중고 거래 수정
   @Patch('/:tradeId')
   @UseGuards(AuthGuard('jwt'))
