@@ -1,9 +1,10 @@
-import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignUpDto } from './dto/sign-up.dto';
 import { SignInDto } from './dto/sign-in.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { KakaoAuthGuard } from './utils/kakao.guard';
 
 @ApiTags('인증')
 @Controller('auth')
@@ -29,6 +30,19 @@ export class AuthController {
   @Post('/sign-in')
   async signIn(@Req() req: any, @Body() signInDto: SignInDto) {
     return await this.authService.signIn(req.user);
+  }
+
+  /**
+   * 카카오 로그인
+   * @param req
+   * @returns
+   */
+  @UseGuards(KakaoAuthGuard)
+  @Get('/kakao')
+  async kakaoSignIn(@Req() req: any, @Res() res: any) {
+    console.log('controller : ', req.user);
+    const { accessToken, refreshToken } = await this.authService.signIn(req.user);
+    return res.send({ accessToken, refreshToken });
   }
 
   /**
