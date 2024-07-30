@@ -28,6 +28,9 @@ export class Show {
   @Column({ type: 'int', name: 'user_id', unsigned: true })
   userId: number;
 
+  @Column({ type: 'int', name: 'image_id', unsigned: true })
+  imageId: number;
+
   /**
    * 공연명
    * @example "시카고"

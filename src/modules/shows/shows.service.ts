@@ -12,14 +12,14 @@ import { Ticket } from 'src/entities/shows/ticket.entity';
 import { Bookmark } from 'src/entities/users/bookmark.entity';
 import { User } from 'src/entities/users/user.entity';
 import { Image } from 'src/entities/images/image.entity';
-import { DataSource, Like, Repository } from 'typeorm';
+import { DataSource, In, Like, Repository } from 'typeorm';
 import { CreateShowDto } from './dto/create-show.dto';
 import { USER_BOOKMARK_MESSAGES } from 'src/commons/constants/users/user-bookmark-messages.constant';
 import { SHOW_TICKET_MESSAGES } from 'src/commons/constants/shows/show-ticket-messages.constant';
 import { SHOW_TICKETS } from 'src/commons/constants/shows/show-tickets.constant';
 import { TicketStatus } from 'src/commons/types/shows/ticket.type';
 import { DeleteBookmarkDto } from './dto/delete-bookmark.dto';
-import { addHours, isBefore, nextDay, startOfDay, subDays, subHours } from 'date-fns';
+import { addHours, startOfDay, subDays, subHours } from 'date-fns';
 import { UpdateShowDto } from './dto/update-show.dto';
 import { SHOW_MESSAGES } from 'src/commons/constants/shows/show-messages.constant';
 import { GetShowListDto } from './dto/get-show-list.dto';
@@ -131,6 +131,7 @@ export class ShowsService {
       where: {
         ...(category && { category }),
         ...(search && { title: Like(`%${search}%`) }),
+        //도커 또는 aws 클러스터 하나 만들어서 서버 띄우기
       },
       skip: (page - 1) * limit,
       take: limit,
@@ -186,45 +187,104 @@ export class ShowsService {
   async updateShow(showId: number, updateShowDto: UpdateShowDto) {
     const show = await this.showRepository.findOne({
       where: { id: showId },
-      relations: { schedules: true },
+      relations: { schedules: true, images: true },
     });
 
-    //공연 존재 여부 확인
+    // 공연 존재 여부 확인
     if (!show) {
-      console.log('showId: ', show.id);
       throw new NotFoundException(SHOW_MESSAGES.COMMON.NOT_FOUND);
     }
 
-    //요청 바디가 비어있는지 확인
+    // 요청 바디가 비어있는지 확인
     if (Object.keys(updateShowDto).length === 0) {
       throw new BadRequestException(SHOW_MESSAGES.UPDATE.NO_BODY_DATE);
     }
 
-    //총 좌석수는 제외
+    // 총 좌석수는 제외
     if ('totalSeat' in updateShowDto) {
       throw new BadRequestException(SHOW_MESSAGES.UPDATE.TOTAL_SEAT);
     }
 
-    // 공연 업데이트
-    Object.assign(show, updateShowDto);
+    // 트랜잭션 연결 설정 초기화
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    //이미지 삭제, 이미지 추가
+    try {
+      // 공연 업데이트
+      Object.assign(show, updateShowDto);
 
-    //변경 사항 저장
-    await this.showRepository.save(show);
+      // 이미지 수정
+      if (updateShowDto.imageUrl) {
+        if (!Array.isArray(updateShowDto.imageUrl)) {
+          throw new BadRequestException('이미지url이 배열이 아닙니다.');
+        }
+        const existingImageUrls = show.images.map((image) => image.imageUrl);
+        const newImageUrls = updateShowDto.imageUrl;
 
-    //수정 완료
-    return {
-      status: HttpStatus.OK,
-      message: SHOW_MESSAGES.UPDATE.SUCCEED,
-    };
+        console.log('새로 받은 이미지 : ', newImageUrls);
+        console.log('기존 이미지 배열 : ', existingImageUrls);
+        const imagesToDelete = existingImageUrls.filter((url) => !newImageUrls.includes(url));
+        const imagesToAdd = newImageUrls.filter((url) => !existingImageUrls.includes(url));
+
+        console.log('삭제할 이미지 : ', imagesToDelete);
+        console.log('추가할 이미지 : ', imagesToAdd);
+        // S3에서 삭제
+        if (imagesToDelete.length > 0) {
+          await this.imagesService.rollbackS3Image(imagesToDelete);
+
+          // DB에서 삭제할 이미지 deletedAt 업데이트
+          await queryRunner.manager.update(
+            Image,
+            { imageUrl: In(imagesToDelete) },
+            { deletedAt: new Date() }
+          );
+
+          // DB에서 삭제할 이미지 제거
+          show.images = show.images.filter((image) => !imagesToDelete.includes(image.imageUrl));
+        }
+
+        // 새 이미지 추가
+        if (imagesToAdd.length > 0) {
+          const newImages = imagesToAdd.map((url) => {
+            return this.imagesRepository.create({
+              show,
+              imageUrl: url,
+            });
+          });
+          console.log('show : ', show);
+          // 새 이미지 추가
+          await queryRunner.manager.save(newImages);
+          console.log('새 이미지 추가:', newImages);
+        }
+      }
+
+      // 공연 변경 사항 저장
+      await queryRunner.manager.save(show);
+
+      // 트랜잭션 커밋
+      await queryRunner.commitTransaction();
+
+      return {
+        status: HttpStatus.OK,
+        message: SHOW_MESSAGES.UPDATE.SUCCEED,
+      };
+    } catch (error) {
+      console.log(error);
+      // 트랜잭션 롤백
+      await queryRunner.rollbackTransaction();
+      throw new InternalServerErrorException(SHOW_MESSAGES.UPDATE.FAIL);
+    } finally {
+      // DB 커넥션 해제
+      await queryRunner.release();
+    }
   }
 
   /*공연 삭제 */
   async deleteShow(showId: number) {
     const show = await this.showRepository.findOne({
       where: { id: showId },
-      relations: { schedules: true },
+      relations: { schedules: true, images: true },
     });
 
     //공연 존재 여부 확인
@@ -240,10 +300,19 @@ export class ShowsService {
       schedule.deletedAt = new Date();
     });
 
+    //이미지 삭제
+    const imageUrls = show.images.map((image) => image.imageUrl);
+    show.images.forEach((image) => {
+      image.deletedAt = new Date();
+    });
+
     //DB에 저장
     await this.scheduleRepository.save(show.schedules);
-
+    await this.imagesRepository.save(show.images);
     await this.showRepository.save(show);
+
+    //s3에서 이미지 삭제
+    await this.imagesService.rollbackS3Image(imageUrls);
 
     return {
       status: HttpStatus.OK,
