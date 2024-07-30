@@ -16,6 +16,7 @@ import { Inject } from '@nestjs/common';
 import { SERVER } from '../../commons/constants/server.constants';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
+import { MESSAGES } from 'src/commons/constants/trades/messages';
 
 //types
 import { Role } from 'src/commons/types/users/user-role.type';
@@ -88,13 +89,17 @@ export class TradesService {
 
     await this.redisClient.set(createTicketId, value, (err, result) => {
       if (err) {
-        throw new Error('티켓을 생성할 수 없습니다 Redis에 에러 발생');
+        throw new Error(
+          `${MESSAGES.TRADES.CAN_NOT_CREATE.TICKET} ${MESSAGES.TRADES.ERROR_OCCUR.REDIS}`
+        );
       } else {
         this.redisClient.expireat(key, unixTimeStamp, (err, result) => {
           if (err) {
-            throw new Error('티켓을 생성할 수 없습니다 Redis에 에러 발생');
+            throw new Error(
+              `${MESSAGES.TRADES.CAN_NOT_CREATE.TICKET} ${MESSAGES.TRADES.ERROR_OCCUR.REDIS}`
+            );
           } else {
-            return { message: '성공적으로 티켓이 발급되었습니다.' };
+            return { message: `${MESSAGES.TRADES.SUCCESSFULLY_CREATE.TICKET} ${'-Redis에서'}` };
           }
         });
       }
@@ -105,9 +110,11 @@ export class TradesService {
   async deleteRedisTicket(deleteTicketId: string) {
     await this.redisClient.del(deleteTicketId, (err, result) => {
       if (err) {
-        throw new Error('티켓을 생성할 수 없습니다 Redis에 에러 발생');
+        throw new Error(
+          `${MESSAGES.TRADES.CAN_NOT_CREATE.TICKET} ${MESSAGES.TRADES.ERROR_OCCUR.REDIS}`
+        );
       } else {
-        return { message: '레디스에서 성공적으로 티켓이 제거 되었습니다.' };
+        return { message: MESSAGES.TRADES.SUCCESSFULLY_DELETE.REDIS_TICKET };
       }
     });
   }
@@ -165,7 +172,7 @@ export class TradesService {
       })
     );
     if (!trade_list[0]) {
-      return { message: '중고거래 목록이 존재하지 않습니다' };
+      return { message: MESSAGES.TRADES.NOT_EXISTS.TRADE_LIST };
     }
 
     return trade_list;
@@ -174,11 +181,11 @@ export class TradesService {
   //중고 거래 상세 보기 //수정 필요 리스트가 아님 (검증 대부분 완료) //테스트 완료
   async getTradeDetail(tradeId: number) {
     const trade = await this.TradeRepository.findOne({ where: { id: tradeId } });
-    if (!trade) throw new NotFoundException('존재하지 않는 거래입니다.');
+    if (!trade) throw new NotFoundException(MESSAGES.TRADES.NOT_EXISTS.TRADE);
     const show = await this.ShowRepository.findOne({ where: { id: trade.showId } });
-    if (!show) throw new NotFoundException('존재하지 않는 공연입니다.');
+    if (!show) throw new NotFoundException(MESSAGES.TRADES.NOT_EXISTS.SHOW);
     const ticket = await this.TicketRepository.findOne({ where: { id: trade.ticketId } });
-    if (!ticket) throw new NotFoundException('존재하지 않는 티켓입니다.');
+    if (!ticket) throw new NotFoundException(MESSAGES.TRADES.NOT_EXISTS.TICKET);
 
     trade['title'] = show.title;
     trade['origin_price'] = show.price;
@@ -203,25 +210,25 @@ export class TradesService {
     //1-1 티켓이 존재하는지 검증
     const ticket = await this.TicketRepository.findOne({ where: { id: ticketId } });
     const { date, time } = ticket;
-    if (!ticket) throw new NotFoundException('해당 티켓이 존재하지 않습니다');
+    if (!ticket) throw new NotFoundException(MESSAGES.TRADES.NOT_EXISTS.TICKET);
 
     const showId = ticket.showId;
 
     //1-2 해당 공연이 존재하는지 검증
     const show = await this.ShowRepository.findOne({ where: { id: showId } });
-    if (!show) throw new NotFoundException('해당 공연이 존재하지 않습니다');
+    if (!show) throw new NotFoundException(MESSAGES.TRADES.NOT_EXISTS.SHOW);
 
     //1-3 해당 일정이 존재하는지 검증
     const schedule = await this.ScheduleRepository.findOne({
       where: { showId: showId, time: ticket.time },
     });
 
-    if (!schedule) throw new NotFoundException('해당 일정이 존재하지 않습니다');
+    if (!schedule) throw new NotFoundException(MESSAGES.TRADES.NOT_EXISTS.SCHEDULE);
 
     //1-4 이미 이 티켓이 중고거래에 올라와있는지 검증
     const trade = await this.TradeRepository.find({ where: { ticketId: ticketId } });
 
-    if (trade[0]) return { message: '해당 티켓은 이미 중고로 올라왔습니다.' };
+    if (trade[0]) return { message: MESSAGES.TRADES.ALREADY_EXISTS.IN_TRADE_TICKET };
 
     //해당 티켓이 사용 가능한지 검증 (레디스 검증)
     if (
@@ -234,13 +241,13 @@ export class TradesService {
     //가격이 기존의 티켓 가격보다 같거나 낮은지 검증
     if (ticket.price < price) {
       throw new BadRequestException(
-        `원래 티켓 가격보다 높게 설정할 수 없습니다! 원래가격: ${show.price}, 현재가격 ${ticket.price}`
+        `${MESSAGES.TRADES.CAN_NOT_UPDATE.TICKET_PRICE} 원래가격: ${show.price}, 현재가격 ${ticket.price}`
       );
     }
 
     //본인의 티켓인지 검증
     if (ticket.userId !== sellerId) {
-      return new BadRequestException('본인의 티켓만 판매 가능합니다!');
+      return new BadRequestException(MESSAGES.TRADES.NOT_EXISTS.authority);
     }
 
     //검증 타일 END==================================================
@@ -260,10 +267,10 @@ export class TradesService {
     const { price } = updateTradeDto;
 
     const trade = await this.TradeRepository.findOne({ where: { id: tradeId } });
-    if (!trade) throw new NotFoundException(`해당 거래가 존재하지 않습니다`);
+    if (!trade) throw new NotFoundException(MESSAGES.TRADES.NOT_EXISTS.TRADE);
 
     if (trade.sellerId !== userId)
-      throw new BadRequestException('해당 중고거래의 게시자가 아닙니다');
+      throw new BadRequestException(MESSAGES.TRADES.NOT_EXISTS.authority);
 
     //티켓과 중고거래의 가격 둘다 변경(어차피 참고하는 것은 티켓의 가격뿐이기에, 추후 수정 예정, 엔티티에서 중고거래의 가격은 사라져도 될것으로 보임)
     await this.TradeRepository.update({ id: tradeId }, { price: price });
@@ -276,10 +283,10 @@ export class TradesService {
   //중고 거래 삭제 메서드  //완료(검증 대부분 완료)
   async deleteTrade(tradeId: number, userId: number) {
     const trade = await this.TradeRepository.findOne({ where: { id: tradeId } });
-    if (!trade) throw new NotFoundException(`해당 거래가 존재하지 않습니다`);
+    if (!trade) throw new NotFoundException(MESSAGES.TRADES.NOT_EXISTS.TRADE);
 
     if (trade.sellerId !== userId) {
-      throw new BadRequestException('해당 중고거래의 게시자가 아닙니다');
+      throw new BadRequestException(MESSAGES.TRADES.NOT_EXISTS.authority);
     }
 
     //모든 검증이 끝난 뒤 삭제 로직
@@ -301,7 +308,7 @@ export class TradesService {
 
     //해당 거래 존재 확인
     const trade = await this.TradeRepository.findOne({ where: { id: tradeId } });
-    if (!trade) throw new NotFoundException(`해당 거래가 존재하지 않습니다`);
+    if (!trade) throw new NotFoundException(MESSAGES.TRADES.NOT_EXISTS.TRADE);
 
     let ticket = await this.TicketRepository.findOne({ where: { id: trade.ticketId } });
 
@@ -359,10 +366,10 @@ export class TradesService {
 
     if (user.role === Role.USER) {
       await this.UserRepository.update({ id: userId }, { role: Role.ADMIN });
-      return { message: '성공적으로 관리자로 권한이 변경되었습니다.' };
+      return { message: MESSAGES.TRADES.SUCCESSFULLY_UPDATE.CHANGE_ROLE_ADMIN };
     } else if (user.role === Role.ADMIN) {
       await this.UserRepository.update({ id: userId }, { role: Role.USER });
-      return { message: '성공적으로 유저로 권한이 변경되었습니다.' };
+      return { message: MESSAGES.TRADES.SUCCESSFULLY_UPDATE.CHANGE_ROLE_USER };
     }
   }
 
