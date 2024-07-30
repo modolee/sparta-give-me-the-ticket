@@ -9,17 +9,11 @@ import { Bookmark } from 'src/entities/users/bookmark.entity';
 import { Schedule } from 'src/entities/shows/schedule.entity';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BullModule } from '@nestjs/bull';
-import { QueueConfig } from 'src/configs/queue.config';
 import { ShowsConsumer } from './shows.consumer';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    BullModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => QueueConfig.createQueueConfig(configService),
-    }),
     BullModule.registerQueue({
       name: 'ticketQueue',
     }),

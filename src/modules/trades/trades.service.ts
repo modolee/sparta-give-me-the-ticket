@@ -13,8 +13,13 @@ import { Repository } from 'typeorm';
 import { NotFoundException } from '@nestjs/common';
 import { Redis } from 'ioredis';
 import { Inject } from '@nestjs/common';
+import { SERVER } from '../../commons/constants/server.constants';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
+
 //types
 import { Role } from 'src/commons/types/users/user-role.type';
+import { number } from 'joi';
 
 //entities
 import { Trade } from 'src/entities/trades/trade.entity';
@@ -23,7 +28,28 @@ import { Show } from 'src/entities/shows/show.entity';
 import { Schedule } from 'src/entities/shows/schedule.entity';
 import { Ticket } from 'src/entities/shows/ticket.entity';
 import { User } from 'src/entities/users/user.entity';
-import { number } from 'joi';
+
+//DataSource File
+import { DataSource } from 'typeorm';
+// const AppDataSource = new DataSource({
+//   type: 'mysql',
+//   host: SERVER.HOST,
+//   port: +SERVER.PORT,
+//   username: SERVER.USER,
+//   password: SERVER.PASSWORD,
+//   database: SERVER.DATABASE,
+//   entities: [Trade, TradeLog, Show, Schedule, Ticket, User],
+//   synchronize: true,
+//   logging: false,
+// });
+
+// AppDataSource.initialize()
+//   .then(() => {
+//     console.log('Data Source has been initialized!');
+//   })
+//   .catch((err) => {
+//     console.error(`Error during Data Source initialization:`, err);
+//   });
 
 @Injectable()
 export class TradesService {
@@ -40,6 +66,8 @@ export class TradesService {
     private TicketRepository: Repository<Ticket>,
     @InjectRepository(User)
     private UserRepository: Repository<User>,
+    @InjectQueue('ticketQueue') private ticketQueue: Queue,
+    private dataSource: DataSource,
     @Inject('REDIS_CLIENT') private redisClient: Redis
   ) {}
 
@@ -260,6 +288,17 @@ export class TradesService {
 
   //티켓 구매 메서드 (buyerId는 기존의 userId와 같다) (현재 수정중)
   async createTicket(tradeId: number, buyerId: number) {
+    //쿼리 러너문 만들기
+    // const queryRunner = this.dataSource.createQueryRunner();
+    // await queryRunner.connect();
+    // await queryRunner.startTransaction();
+
+    // try {
+
+    // }catch(err) {
+
+    // }
+
     //해당 거래 존재 확인
     const trade = await this.TradeRepository.findOne({ where: { id: tradeId } });
     if (!trade) throw new NotFoundException(`해당 거래가 존재하지 않습니다`);
@@ -305,8 +344,14 @@ export class TradesService {
   }
 
   async test() {
-    console.log('bbbbbbbbbbbbbbbbbbbbbbbbb');
-    return { message: '해결 완료' };
+    console.log('bbbbbbbbbbbbbbbbbbbbbbbb');
+    // return {
+    //   PORT: process.env.SERVER_PORT,
+    //   HOST: process.env.DB_HOST,
+    //   USER: process.env.DB_USER,
+    //   PASSWORD: process.env.DB_PASSWORD,
+    //   DATABASE: process.env.DB_NAME,
+    // };
   }
 
   async changeRole(userId: number) {
