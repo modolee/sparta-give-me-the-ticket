@@ -12,7 +12,6 @@ import { Show } from 'src/entities/shows/show.entity';
 import { Schedule } from 'src/entities/shows/schedule.entity';
 import { Ticket } from 'src/entities/shows/ticket.entity';
 import { User } from 'src/entities/users/user.entity';
-import { QueueConfig } from 'src/configs/queue.config';
 
 @Module({
   imports: [
@@ -20,15 +19,14 @@ import { QueueConfig } from 'src/configs/queue.config';
     BullModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (ConfigService: ConfigService) => QueueConfig.createQueueConfig(ConfigService),
     }),
     BullModule.registerQueue({
       name: 'ticketQueue',
     }),
     TypeOrmModule.forFeature([Trade, TradeLog, Show, Schedule, Ticket, User]),
   ],
-  providers: [TradesService],
   controllers: [TradesController],
+  providers: [TradesService],
   exports: [TypeOrmModule, BullModule],
 })
 export class TradesModule {}
