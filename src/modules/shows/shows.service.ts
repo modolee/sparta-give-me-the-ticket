@@ -253,7 +253,6 @@ export class ShowsService {
       //show안에 있는 images요소 삭제
       delete show.images;
       // 공연 변경 사항 저장
-      console.log(show);
       await queryRunner.manager.save(show);
 
       // 트랜잭션 커밋
