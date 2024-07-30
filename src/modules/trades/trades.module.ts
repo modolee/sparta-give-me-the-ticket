@@ -15,14 +15,14 @@ import { User } from 'src/entities/users/user.entity';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
-    BullModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-    }),
-    BullModule.registerQueue({
-      name: 'ticketQueue',
-    }),
+    // ConfigModule.forRoot({ isGlobal: true }),
+    // BullModule.forRootAsync({
+    //   imports: [ConfigModule],
+    //   inject: [ConfigService],
+    // }),
+    // BullModule.registerQueue({
+    //   name: 'ticketQueue',
+    // }),
     TypeOrmModule.forFeature([Trade, TradeLog, Show, Schedule, Ticket, User]),
   ],
   controllers: [TradesController],
