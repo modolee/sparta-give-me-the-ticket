@@ -14,8 +14,6 @@ import { NotFoundException } from '@nestjs/common';
 import { Redis } from 'ioredis';
 import { Inject } from '@nestjs/common';
 import { SERVER } from '../../commons/constants/server.constants';
-import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
 import { MESSAGES } from 'src/commons/constants/trades/messages';
 
 //types
@@ -67,8 +65,6 @@ export class TradesService {
     private TicketRepository: Repository<Ticket>,
     @InjectRepository(User)
     private UserRepository: Repository<User>,
-    @InjectQueue('ticketQueue') private ticketQueue: Queue,
-    private dataSource: DataSource,
     @Inject('REDIS_CLIENT') private redisClient: Redis
   ) {}
 
