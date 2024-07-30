@@ -32,7 +32,7 @@ jobs:
             [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
             # yarn global 설치 한 pm2 명령을 위한 설정 (npm 사용 시 불필요)
-            export PATH="$(yarn global bin):$PATH"
+            # export PATH="$(yarn global bin):$PATH"
 
             # 프로젝트 폴더로 이동
             cd /home/ubuntu/Give_me_the_ticket
@@ -59,7 +59,14 @@ jobs:
             echo "AWS_S3_ACCESS_KEY=${{ secrets.AWS_S3_ACCESS_KEY }}" >> .env
             echo "AWS_S3_SECRET_KEY=${{ secrets.AWS_S3_SECRET_KEY }}" >> .env
             echo "AWS_BUCKET=${{ secrets.AWS_BUCKET }}" >> .env
-
+            echo "REDIS_HOST=${{ secrets.REDIS_HOST }}" >> .env
+            echo "REDIS_PORT=${{ secrets.REDIS_PORT }}" >> .env
+            echo "REDIS_USERNAME=${{ secrets.REDIS_USERNAME }}" >> .env
+            echo "REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}" >> .env
+            echo "REDIS_DBNAME=${{ secrets.REDIS_DBNAME }}" >> .env
+            echo "KAKAO_CLIENT_ID=${{ secrets.KAKAO_CLIENT_ID }}" >> .env
+            echo "KAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET }}" >> .env
+            echo "KAKAO_CALLBACK_URL=${{ secrets.KAKAO_CALLBACK_URL }}" >> .env
 
 
             # 의존성 설치

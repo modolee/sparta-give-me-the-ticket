@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { MESSAGES } from 'src/commons/constants/trades/messages';
 import Redis from 'ioredis';
 
 @Injectable()
@@ -18,7 +19,7 @@ export class RedisConfig {
   private async initialize() {
     try {
       await this.redisClient.ping();
-      console.log('Redis connected successfully');
+      console.log(MESSAGES.REDIS.SUCCESSFULLY_CONNECT);
     } catch (error) {
       console.error('Redis connection error:', error);
     }

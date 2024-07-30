@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  HttpException,
   HttpStatus,
   Injectable,
   InternalServerErrorException,
@@ -28,6 +29,7 @@ import { Schedule } from 'src/entities/shows/schedule.entity';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { ImagesService } from '../images/images.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class ShowsService {
@@ -38,7 +40,8 @@ export class ShowsService {
     @InjectRepository(Image) private imagesRepository: Repository<Image>,
     @InjectQueue('ticketQueue') private ticketQueue: Queue,
     private dataSource: DataSource,
-    private readonly imagesService: ImagesService
+    private readonly imagesService: ImagesService,
+    private eventEmitter: EventEmitter2
   ) {}
 
   /*공연 생성 */
@@ -364,8 +367,60 @@ export class ShowsService {
     //remove 검색, delete는 id 값을 넘겨줘야한다.
   }
 
+  /* 티켓 예매 동시성 처리 */
+  async addTicketQueue(showId: number, createTicketDto: CreateTicketDto, user: User) {
+    const eventName = `finishJoin-${user.nickname}-${Math.floor(Math.random() * 89999) + 1}`;
+    await this.ticketQueue.add(
+      'ticket',
+      { eventName, showId, user, createTicketDto },
+      // 큐에서 작업을 실행 한 후 redis에 남아있지 않게 하는 옵션
+      {
+        removeOnComplete: true,
+        removeOnFail: true,
+      }
+    );
+    return this.waitFinish(eventName, 2);
+  }
+
+  //티켓 예매, 동시성 처리 메소드를 연결해주는 로직
+  private waitFinish(eventName: string, sec: number) {
+    return new Promise((resolve, reject) => {
+      const wait = setTimeout(() => {
+        this.eventEmitter.removeAllListeners(eventName);
+        resolve({
+          message: '대기중입니다.',
+        });
+      }, sec * 1000);
+      console.log(eventName);
+      const listenFn = ({
+        success,
+        exception,
+      }: {
+        success: boolean;
+        exception?: HttpException;
+      }) => {
+        clearTimeout(wait);
+        console.log(`Event received: ${eventName}, success: ${success}`);
+        this.eventEmitter.removeAllListeners(eventName);
+        //티켓 예매 성공할 때 받는 응답
+        success
+          ? resolve({
+              httpstatus: HttpStatus.CREATED,
+              message: SHOW_TICKET_MESSAGES.COMMON.TICKET.SUCCESS,
+            })
+          : reject(exception);
+      };
+      this.eventEmitter.addListener(eventName, listenFn);
+    });
+  }
+
   /* 티켓 예매 */
-  async createTicket(showId: number, createTicketDto: CreateTicketDto, user: User) {
+  async createTicket(
+    showId: number,
+    createTicketDto: CreateTicketDto,
+    user: User,
+    eventName: string
+  ) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -379,27 +434,28 @@ export class ShowsService {
       if (!show) {
         throw new NotFoundException(SHOW_TICKET_MESSAGES.COMMON.SHOW.NOT_FOUND);
       }
-      console.log(show);
+
       // 스케줄이 있는지 확인합니다.
       const schedule = await queryRunner.manager.findOne(Schedule, {
         where: {
           id: scheduleId,
           showId: showId,
         },
-        lock: { mode: 'pessimistic_write' }, // 중복 예매를 방지하기 위해 낙관적 락 대신 비관적 락 사용
       });
 
       if (!schedule) {
         throw new NotFoundException(SHOW_TICKET_MESSAGES.COMMON.SCHEDULE.NOT_FOUND);
       }
       console.log(schedule);
+      console.log(show);
+      console.log(eventName);
       //지정 좌석이 있는지 확인합니다.
       if (schedule.remainSeat <= SHOW_TICKETS.COMMON.SEAT.UNSIGNED) {
         throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.SEAT.NOT_ENOUGH);
       }
 
       //date와 time을 하나의 showTime으로 연결합니다.
-      const showTime = `${String(schedule.date)}T${String(schedule.time)}`;
+      const showTime = `${String(schedule.date)}T${String(schedule.time)}.000Z`;
 
       // 공연 시간 기준 2시간 전
       const twoHoursBeforeShowTime = subHours(showTime, 2);
@@ -441,32 +497,15 @@ export class ShowsService {
       await queryRunner.manager.save(Schedule, schedule);
       await queryRunner.commitTransaction();
 
-      return ticket;
+      //각각 성공, 실패 여부를 return 합니다.
+      return this.eventEmitter.emit(eventName, { success: true });
     } catch (error) {
       await queryRunner.rollbackTransaction();
+      return this.eventEmitter.emit(eventName, { success: false, exception: error });
+    } finally {
       await queryRunner.release();
-      throw error;
     }
   }
-
-  /* 티켓 예매 동시성 처리 */
-  async addTicketQueue(showId: number, createTicketDto: CreateTicketDto, user: User) {
-    const job = await this.ticketQueue.add(
-      'ticket',
-      {
-        showId,
-        user,
-        createTicketDto,
-      },
-      {
-        removeOnComplete: true,
-        removeOnFail: true,
-      }
-    );
-
-    return job;
-  }
-  //티켓이랑 스케줄 아이디 잘못 입력할 시 redis에 들어간다. 이런 버그 수정을 하는 노하우가 있습니까?
 
   /*티켓 환불 */
   async refundTicket(showId: number, ticketId: number, user: User) {

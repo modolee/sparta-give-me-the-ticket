@@ -7,28 +7,22 @@ import { User } from 'src/entities/users/user.entity';
 import { Ticket } from 'src/entities/shows/ticket.entity';
 import { Bookmark } from 'src/entities/users/bookmark.entity';
 import { Schedule } from 'src/entities/shows/schedule.entity';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { BullModule } from '@nestjs/bull';
-import { QueueConfig } from 'src/configs/queue.config';
-import { ShowsConsumer } from './shows.consumer';
+import { QueueConsumer } from './queue.consumer';
 import { Image } from 'src/entities/images/image.entity';
 import { ImagesService } from 'src/modules/images/images.service';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    BullModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => QueueConfig.createQueueConfig(configService),
-    }),
     BullModule.registerQueue({
       name: 'ticketQueue',
     }),
     TypeOrmModule.forFeature([Show, User, Ticket, Bookmark, Schedule, Image]),
   ],
   controllers: [ShowsController],
-  providers: [ShowsService, ShowsConsumer, ImagesService],
+  providers: [ShowsService, QueueConsumer, ImagesService],
   exports: [TypeOrmModule, BullModule],
 })
 export class ShowsModule {}

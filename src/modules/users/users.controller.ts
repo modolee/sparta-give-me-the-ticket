@@ -9,7 +9,6 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/utils/roles.guard';
 import { Roles } from '../auth/utils/roles.decorator';
 import { Role } from 'src/commons/types/users/user-role.type';
@@ -23,7 +22,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('사용자')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'), RolesGuard)
+@UseGuards(RolesGuard)
 @Roles(Role.USER)
 @Controller('users')
 export class UsersController {
@@ -79,8 +78,14 @@ export class UsersController {
 
   // 거래 내역 조회
   @Get('/me/trade')
-  async getTradeLog() {
-    return await this.userService.getTradeLog();
+  async getTradeLog(@Req() req: any) {
+    const getTradeLog = await this.userService.getTradeLog(req.user.id);
+
+    return {
+      statusCode: HttpStatus.OK,
+      message: USER_MESSAGES.USER.TRADE.GET_LOG.SUCCESS,
+      getTradeLog,
+    };
   }
 
   /**

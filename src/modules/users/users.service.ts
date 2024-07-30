@@ -12,11 +12,13 @@ import { PointType } from 'src/commons/types/users/point.type';
 import { ChargePointDto } from './dto/charge-point.dto';
 import { Ticket } from 'src/entities/shows/ticket.entity';
 import { Bookmark } from 'src/entities/users/bookmark.entity';
+import { Trade } from 'src/entities/trades/trade.entity';
+import { TradeLog } from 'src/entities/trades/trade-log.entity';
 import { USER_MESSAGES } from 'src/commons/constants/users/user-message.constant';
 import { USER_BOOKMARK_MESSAGES } from 'src/commons/constants/users/user-bookmark-messages.constant';
 
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 
 @Injectable()
 export class UsersService {
@@ -31,7 +33,11 @@ export class UsersService {
     @InjectRepository(Ticket)
     private readonly ticketRepository: Repository<Ticket>,
     @InjectRepository(Bookmark)
-    private readonly bookmarkRepository: Repository<Bookmark>
+    private readonly bookmarkRepository: Repository<Bookmark>,
+    @InjectRepository(Trade)
+    private readonly tradeRepository: Repository<Trade>,
+    @InjectRepository(TradeLog)
+    private readonly tradeLogRepository: Repository<TradeLog>
   ) {}
 
   // 포인트 내역 조회
@@ -65,17 +71,39 @@ export class UsersService {
     try {
       const bookmark = await this.bookmarkRepository.find({ where: { userId: id } });
 
+      if (bookmark.length === 0) {
+        throw new NotFoundException(
+          USER_BOOKMARK_MESSAGES.COMMON.BOOKMARK.GET_LIST.FAILURE.NOT_FOUND
+        );
+      }
+
       return bookmark;
     } catch (err) {
       throw new InternalServerErrorException(
-        USER_BOOKMARK_MESSAGES.COMMON.BOOKMARK.GET_LIST.FAILURE
+        USER_BOOKMARK_MESSAGES.COMMON.BOOKMARK.GET_LIST.FAILURE.FAIL
       );
     }
   }
 
   // 거래 내역 조회
-  async getTradeLog() {
-    return;
+  async getTradeLog(id: number) {
+    try {
+      const tradeLog = await this.tradeLogRepository.find({
+        where: [{ sellerId: id }, { buyerId: id }],
+      });
+
+      if (tradeLog.length === 0) {
+        throw new NotFoundException(USER_MESSAGES.USER.TRADE.GET_LOG.FAILURE.NOT_FOUND);
+      }
+
+      // 거래 ID 추출하여 거래 데이터 가져오기
+      const tradeId = tradeLog.map((log) => log.tradeId);
+      const trade = await this.tradeRepository.find({ where: { id: In(tradeId) } });
+
+      return trade;
+    } catch (err) {
+      throw new InternalServerErrorException(USER_MESSAGES.USER.TRADE.GET_LOG.FAILURE.FAIL);
+    }
   }
 
   // 사용자 정보 수정
