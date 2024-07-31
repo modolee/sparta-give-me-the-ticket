@@ -54,6 +54,10 @@ export class CreateShowDto extends PickType(Show, [
   totalSeat: number;
 
   @IsArray()
+  @IsNotEmpty({ message: SHOW_MESSAGES.COMMON.IMAGE.REQUIRED })
+  imageUrl: string[];
+
+  @IsArray()
   @ValidateNested()
   @Type(() => CreateScheduleDto)
   schedules: CreateScheduleDto[];
