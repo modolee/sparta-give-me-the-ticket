@@ -41,12 +41,11 @@ export class ShowsService {
     @InjectRepository(Show) private showRepository: Repository<Show>,
     @InjectRepository(Bookmark) private bookmarkRepository: Repository<Bookmark>,
     @InjectRepository(Schedule) private scheduleRepository: Repository<Schedule>,
-     @InjectRepository(Image) private imagesRepository: Repository<Image>,
+    @InjectRepository(Image) private imagesRepository: Repository<Image>,
     @InjectQueue(TICKET_QUEUE) private ticketQueue: Queue,
     private readonly ticketQueueEvents: TicketQueueEvents,
-    private dataSource: DataSource
-    private readonly imagesService: ImagesService,
-
+    private dataSource: DataSource,
+    private readonly imagesService: ImagesService
   ) {}
 
   /*공연 생성 */
