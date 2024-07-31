@@ -4,6 +4,7 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -24,9 +25,11 @@ import { SHOW_MESSAGES } from 'src/commons/constants/shows/show-messages.constan
 import { GetShowListDto } from './dto/get-show-list.dto';
 import { CreateTicketDto } from './dto/create-ticket-dto';
 import { Schedule } from 'src/entities/shows/schedule.entity';
-import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { TICKET_QUEUE } from 'src/commons/constants/queue.constant';
+import { TicketQueueEvents } from 'src/queue-events/ticket.queue-event';
 
 @Injectable()
 export class ShowsService {
@@ -34,9 +37,9 @@ export class ShowsService {
     @InjectRepository(Show) private showRepository: Repository<Show>,
     @InjectRepository(Bookmark) private bookmarkRepository: Repository<Bookmark>,
     @InjectRepository(Schedule) private scheduleRepository: Repository<Schedule>,
-    @InjectQueue('ticketQueue') private ticketQueue: Queue,
-    private dataSource: DataSource,
-    private eventEmitter: EventEmitter2
+    @InjectQueue(TICKET_QUEUE) private ticketQueue: Queue,
+    private readonly ticketQueueEvents: TicketQueueEvents,
+    private dataSource: DataSource
   ) {}
 
   /*공연 생성 */
@@ -264,59 +267,23 @@ export class ShowsService {
   }
 
   /* 티켓 예매 동시성 처리 */
-  async addTicketQueue(showId: number, createTicketDto: CreateTicketDto, user: User) {
-    const eventName = `finishJoin-${user.nickname}-${Math.floor(Math.random() * 89999) + 1}`;
-    await this.ticketQueue.add(
-      'ticket',
-      { eventName, showId, user, createTicketDto },
-      // 큐에서 작업을 실행 한 후 redis에 남아있지 않게 하는 옵션
-      {
-        removeOnComplete: true,
-        removeOnFail: true,
-      }
-    );
-    return this.waitFinish(eventName, 2);
-  }
 
-  //티켓 예매, 동시성 처리 메소드를 연결해주는 로직
-  private waitFinish(eventName: string, sec: number) {
-    return new Promise((resolve, reject) => {
-      const wait = setTimeout(() => {
-        this.eventEmitter.removeAllListeners(eventName);
-        resolve({
-          message: '대기중입니다.',
-        });
-      }, sec * 1000);
-      console.log(eventName);
-      const listenFn = ({
-        success,
-        exception,
-      }: {
-        success: boolean;
-        exception?: HttpException;
-      }) => {
-        clearTimeout(wait);
-        console.log(`Event received: ${eventName}, success: ${success}`);
-        this.eventEmitter.removeAllListeners(eventName);
-        //티켓 예매 성공할 때 받는 응답
-        success
-          ? resolve({
-              httpstatus: HttpStatus.CREATED,
-              message: SHOW_TICKET_MESSAGES.COMMON.TICKET.SUCCESS,
-            })
-          : reject(exception);
-      };
-      this.eventEmitter.addListener(eventName, listenFn);
-    });
+  async addTicketQueue(showId: number, createTicketDto: CreateTicketDto, user: User) {
+    // 큐에 작업 추가
+
+    const job = await this.ticketQueue.add('ticket', { showId, user, createTicketDto });
+
+    // 작업 완료 대기 및 결과 반환
+    const result = await job.waitUntilFinished(this.ticketQueueEvents.queueEvents);
+    console.log(result);
+    if (!result) {
+      throw new InternalServerErrorException(SHOW_TICKET_MESSAGES.COMMON.TICKET.NOT_FOUND);
+    }
+    return result;
   }
 
   /* 티켓 예매 */
-  async createTicket(
-    showId: number,
-    createTicketDto: CreateTicketDto,
-    user: User,
-    eventName: string
-  ) {
+  async createTicket(showId: number, createTicketDto: CreateTicketDto, user: User) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -342,9 +309,7 @@ export class ShowsService {
       if (!schedule) {
         throw new NotFoundException(SHOW_TICKET_MESSAGES.COMMON.SCHEDULE.NOT_FOUND);
       }
-      console.log(schedule);
-      console.log(show);
-      console.log(eventName);
+
       //지정 좌석이 있는지 확인합니다.
       if (schedule.remainSeat <= SHOW_TICKETS.COMMON.SEAT.UNSIGNED) {
         throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.SEAT.NOT_ENOUGH);
@@ -392,14 +357,14 @@ export class ShowsService {
 
       await queryRunner.manager.save(Schedule, schedule);
       await queryRunner.commitTransaction();
-
+      await queryRunner.release();
+      return ticket;
       //각각 성공, 실패 여부를 return 합니다.
-      return this.eventEmitter.emit(eventName, { success: true });
+      // this.eventEmitter.emit(user.nickname, { success: true });
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      return this.eventEmitter.emit(eventName, { success: false, exception: error });
-    } finally {
       await queryRunner.release();
+      throw error;
     }
   }
 
@@ -421,7 +386,7 @@ export class ShowsService {
         throw new NotFoundException(SHOW_TICKET_MESSAGES.COMMON.TICKET.NOT_FOUND);
       }
 
-      const showTime = `${String(ticket.date)}T${String(ticket.time)}.000Z`;
+      const showTime = `${String(ticket.date)}T${String(ticket.time)}.000+09:00`;
 
       // 현재의 시간에서 1시간 전으로 시간 제한을 설정
       const oneHoursBeforeShowTime = subHours(
@@ -447,7 +412,11 @@ export class ShowsService {
       const earlyTime = startOfDay(showTime);
 
       // 환불 정책에 따른 비율 계산
-      let refundPoint;
+      let refundPoint = 0;
+
+      console.log(nowTime);
+      console.log(showTime);
+      console.log(oneHoursBeforeShowTime);
 
       // 공연 시간이 현재 시간 기준으로 1시간 이전일 경우 환불하기 어렵다는 메시지 전달
       if (nowTime >= oneHoursBeforeShowTime) {
