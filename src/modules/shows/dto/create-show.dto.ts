@@ -1,4 +1,12 @@
-import { IsEnum, IsNotEmpty, IsNumber, IsString, MinLength, ValidateNested } from 'class-validator';
+import {
+  IsArray,
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
 import { SHOW_MESSAGES } from 'src/commons/constants/shows/show-messages.constant';
 import { ShowCategory } from 'src/commons/types/shows/show-category.type';
 import { CreateScheduleDto } from './create-schedule.dto';
@@ -45,6 +53,11 @@ export class CreateShowDto extends PickType(Show, [
   @IsNotEmpty({ message: SHOW_MESSAGES.COMMON.TOTAL_SEAT.REQUIRED })
   totalSeat: number;
 
+  @IsArray()
+  @IsNotEmpty({ message: SHOW_MESSAGES.COMMON.IMAGE.REQUIRED })
+  imageUrl: string[];
+
+  @IsArray()
   @ValidateNested()
   @Type(() => CreateScheduleDto)
   schedules: CreateScheduleDto[];

@@ -1,43 +1,53 @@
 import {
   BadRequestException,
   ConflictException,
+  HttpException,
   HttpStatus,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { DataSource, In, Like, Repository } from 'typeorm';
 import { Show } from 'src/entities/shows/show.entity';
-import { Ticket } from 'src/entities/shows/ticket.entity';
-import { Bookmark } from 'src/entities/users/bookmark.entity';
 import { User } from 'src/entities/users/user.entity';
-import { DataSource, Like, Repository } from 'typeorm';
-import { CreateShowDto } from './dto/create-show.dto';
-import { USER_BOOKMARK_MESSAGES } from 'src/commons/constants/users/user-bookmark-messages.constant';
-import { SHOW_TICKET_MESSAGES } from 'src/commons/constants/shows/show-ticket-messages.constant';
-import { SHOW_TICKETS } from 'src/commons/constants/shows/show-tickets.constant';
-import { TicketStatus } from 'src/commons/types/shows/ticket.type';
-import { DeleteBookmarkDto } from './dto/delete-bookmark.dto';
-import { addHours, isBefore, startOfDay, subDays, subHours } from 'date-fns';
-import { UpdateShowDto } from './dto/update-show.dto';
-import { SHOW_MESSAGES } from 'src/commons/constants/shows/show-messages.constant';
-import { GetShowListDto } from './dto/get-show-list.dto';
-import { CreateTicketDto } from './dto/create-ticket-dto';
+import { Bookmark } from 'src/entities/users/bookmark.entity';
 import { Schedule } from 'src/entities/shows/schedule.entity';
+import { Ticket } from 'src/entities/shows/ticket.entity';
+import { Image } from 'src/entities/images/image.entity';
+import { CreateShowDto } from './dto/create-show.dto';
+import { GetShowListDto } from './dto/get-show-list.dto';
+import { UpdateShowDto } from './dto/update-show.dto';
+import { DeleteBookmarkDto } from './dto/delete-bookmark.dto';
+import { CreateTicketDto } from './dto/create-ticket-dto';
+import { TicketStatus } from 'src/commons/types/shows/ticket.type';
+import { SHOW_MESSAGES } from 'src/commons/constants/shows/show-messages.constant';
+import { SHOW_TICKETS } from 'src/commons/constants/shows/show-tickets.constant';
+import { SHOW_TICKET_MESSAGES } from 'src/commons/constants/shows/show-ticket-messages.constant';
+import { USER_BOOKMARK_MESSAGES } from 'src/commons/constants/users/user-bookmark-messages.constant';
+import { ImagesService } from '../images/images.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { SearchService } from './search/search.service';
-
+import { addHours, startOfDay, subDays, subHours } from 'date-fns';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
 @Injectable()
 export class ShowsService {
   constructor(
     @InjectRepository(Show) private showRepository: Repository<Show>,
     @InjectRepository(Bookmark) private bookmarkRepository: Repository<Bookmark>,
     @InjectRepository(Schedule) private scheduleRepository: Repository<Schedule>,
+    @InjectRepository(Image) private imagesRepository: Repository<Image>,
+    @InjectQueue('ticketQueue') private ticketQueue: Queue,
     private dataSource: DataSource,
-    private readonly searchService: SearchService
+    private readonly imagesService: ImagesService,
+    private readonly searchService: SearchService,
+    private eventEmitter: EventEmitter2
   ) {}
 
   /*공연 생성 */
   async createShow(createShowDto: CreateShowDto, req: any) {
-    const { schedules, ...restOfShow } = createShowDto;
+    const { schedules, imageUrl, ...restOfShow } = createShowDto;
 
     //공연 명 기준으로 이미 있는 공연인지 확인
     const existedShow = await this.showRepository.findOne({
@@ -48,53 +58,101 @@ export class ShowsService {
       throw new ConflictException(SHOW_MESSAGES.COMMON.TITLE.EXISTED);
     }
 
-    //공연 생성
-    const show = await this.showRepository.create({
-      ...restOfShow,
-      userId: req.user.id,
-      //이미지 url 받기
-      schedules: schedules.map((schedule) => ({
-        ...schedule,
-      })),
-    });
+    // 트랜젝션 연결 설정 초기화
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    //생성한 공연 DB에 저장
-    await this.showRepository.save(show);
-
-    return {
-      status: HttpStatus.CREATED,
-      message: SHOW_MESSAGES.CREATE.SUCCEED,
-      data: {
-        id: show.id,
-        userId: show.userId,
-        title: show.title,
-        content: show.content,
-        category: show.category,
-        runtime: show.runtime,
-        location: show.location,
-        price: show.price,
-        totalSeat: show.totalSeat,
-        schedules: show.schedules.map(({ date, time }) => ({
-          date,
-          time,
+    try {
+      //공연 생성
+      const show = await this.showRepository.create({
+        ...restOfShow,
+        userId: req.user.id,
+        schedules: schedules.map((schedule) => ({
+          ...schedule,
+          remainSeat: restOfShow.totalSeat,
         })),
-        createdAt: show.createdAt,
-        updatedAt: show.updatedAt,
-        deletedAt: show.deletedAt,
-      },
-    };
+      });
+
+      //생성한 공연 DB에 저장
+      await queryRunner.manager.save(show);
+
+      //이미지 저장
+      const images = imageUrl.map((url) =>
+        this.imagesRepository.create({
+          showId: show.id,
+          imageUrl: url,
+        })
+      );
+
+      // 이미지 병렬로 저장
+      await queryRunner.manager.save(images);
+
+      //트랜잭션 커밋
+      await queryRunner.commitTransaction();
+
+      return {
+        status: HttpStatus.CREATED,
+        message: SHOW_MESSAGES.CREATE.SUCCEED,
+        data: {
+          id: show.id,
+          userId: show.userId,
+          title: show.title,
+          content: show.content,
+          category: show.category,
+          runtime: show.runtime,
+          location: show.location,
+          price: show.price,
+          totalSeat: show.totalSeat,
+          schedules: show.schedules.map(({ date, time, remainSeat }) => ({
+            date,
+            time,
+            remainSeat,
+          })),
+          imageUrl: images.map(({ imageUrl }) => imageUrl),
+          createdAt: show.createdAt,
+          updatedAt: show.updatedAt,
+          deletedAt: show.deletedAt,
+        },
+      };
+    } catch (error) {
+      //트랜잭션 롤백
+      await queryRunner.rollbackTransaction();
+      // 트랜젝션 실패 시 S3 이미지도 롤백
+      await this.imagesService.rollbackS3Image(imageUrl);
+      throw new InternalServerErrorException(SHOW_MESSAGES.CREATE.FAIL);
+    } finally {
+      //DB 커넥션 해제
+      await queryRunner.release();
+    }
   }
 
   /*공연 목록 조회 */
-  async getShowList({ category, search }: GetShowListDto) {
+  async getShowList(getShowListDto: GetShowListDto) {
+    const { category, search, page, limit } = getShowListDto;
+
+    const [shows, total] = await this.showRepository.findAndCount({
+      where: {
+        ...(category && { category }),
+        ...(search && { title: Like(`%${search}%`) }),
+        //도커 또는 aws 클러스터 하나 만들어서 서버 띄우기
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    //async getShowList({ category, search }: GetShowListDto) {
     // searchService 사용해 검색
-    const { results, total } = await this.searchService.searchShows(category, search);
+    //const { results, total } = await this.searchService.searchShows(category, search);
 
     return {
-      status: HttpStatus.CREATED,
+      status: HttpStatus.OK,
       message: SHOW_MESSAGES.GET_LIST.SUCCEED.LIST,
-      data: results,
+      data: shows,
       total,
+      page,
+      totalPages: Math.ceil(total / limit),
+      //data: results,
     };
   }
 
@@ -138,40 +196,93 @@ export class ShowsService {
   async updateShow(showId: number, updateShowDto: UpdateShowDto) {
     const show = await this.showRepository.findOne({
       where: { id: showId },
-      relations: { schedules: true },
+      relations: { images: true },
     });
 
-    //공연 존재 여부 확인
+    // 공연 존재 여부 확인
     if (!show) {
-      console.log('showId: ', show.id);
       throw new NotFoundException(SHOW_MESSAGES.COMMON.NOT_FOUND);
     }
 
-    //요청 바디가 비어있는지 확인
+    // 요청 바디가 비어있는지 확인
     if (Object.keys(updateShowDto).length === 0) {
       throw new BadRequestException(SHOW_MESSAGES.UPDATE.NO_BODY_DATE);
     }
 
-    // 공연 업데이트
-    Object.assign(show, updateShowDto);
+    // 총 좌석수는 제외
+    if ('totalSeat' in updateShowDto) {
+      throw new BadRequestException(SHOW_MESSAGES.UPDATE.TOTAL_SEAT);
+    }
 
-    //이미지 삭제, 이미지 추가
+    // 트랜잭션 연결 설정 초기화
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    //변경 사항 저장
-    await this.showRepository.save(show);
+    try {
+      // 공연 업데이트
+      Object.assign(show, updateShowDto);
 
-    //수정 완료
-    return {
-      status: HttpStatus.OK,
-      message: SHOW_MESSAGES.UPDATE.SUCCEED,
-    };
+      // 이미지 수정
+      if (updateShowDto.imageUrl) {
+        const existingImageUrls = show.images.map((image) => image.imageUrl);
+        const newImageUrls = updateShowDto.imageUrl;
+
+        const imagesToDelete = existingImageUrls.filter((url) => !newImageUrls.includes(url));
+        const imagesToAdd = newImageUrls.filter((url) => !existingImageUrls.includes(url));
+
+        // S3에서 삭제
+        if (imagesToDelete.length > 0) {
+          await this.imagesService.rollbackS3Image(imagesToDelete);
+
+          // DB에서 삭제할 이미지 deletedAt 업데이트
+          await queryRunner.manager.update(
+            Image,
+            { imageUrl: In(imagesToDelete) },
+            { deletedAt: new Date() }
+          );
+        }
+
+        // 새 이미지 추가
+        if (imagesToAdd.length > 0) {
+          const newImages = imagesToAdd.map((url) => {
+            return this.imagesRepository.create({
+              showId,
+              imageUrl: url,
+            });
+          });
+          // 새 이미지 추가
+          await queryRunner.manager.save(newImages);
+        }
+      }
+
+      //show안에 있는 images요소 삭제
+      delete show.images;
+      // 공연 변경 사항 저장
+      await queryRunner.manager.save(show);
+
+      // 트랜잭션 커밋
+      await queryRunner.commitTransaction();
+
+      return {
+        status: HttpStatus.OK,
+        message: SHOW_MESSAGES.UPDATE.SUCCEED,
+      };
+    } catch (error) {
+      // 트랜잭션 롤백
+      await queryRunner.rollbackTransaction();
+      throw new InternalServerErrorException(SHOW_MESSAGES.UPDATE.FAIL);
+    } finally {
+      // DB 커넥션 해제
+      await queryRunner.release();
+    }
   }
 
   /*공연 삭제 */
   async deleteShow(showId: number) {
     const show = await this.showRepository.findOne({
       where: { id: showId },
-      relations: { schedules: true },
+      relations: { schedules: true, images: true },
     });
 
     //공연 존재 여부 확인
@@ -187,10 +298,19 @@ export class ShowsService {
       schedule.deletedAt = new Date();
     });
 
+    //이미지 삭제
+    const imageUrls = show.images.map((image) => image.imageUrl);
+    show.images.forEach((image) => {
+      image.deletedAt = new Date();
+    });
+
     //DB에 저장
     await this.scheduleRepository.save(show.schedules);
-
+    await this.imagesRepository.save(show.images);
     await this.showRepository.save(show);
+
+    //s3에서 이미지 삭제
+    await this.imagesService.rollbackS3Image(imageUrls);
 
     return {
       status: HttpStatus.OK,
@@ -242,8 +362,60 @@ export class ShowsService {
     //remove 검색, delete는 id 값을 넘겨줘야한다.
   }
 
+  /* 티켓 예매 동시성 처리 */
+  async addTicketQueue(showId: number, createTicketDto: CreateTicketDto, user: User) {
+    const eventName = `finishJoin-${user.nickname}-${Math.floor(Math.random() * 89999) + 1}`;
+    await this.ticketQueue.add(
+      'ticket',
+      { eventName, showId, user, createTicketDto },
+      // 큐에서 작업을 실행 한 후 redis에 남아있지 않게 하는 옵션
+      {
+        removeOnComplete: true,
+        removeOnFail: true,
+      }
+    );
+    return this.waitFinish(eventName, 2);
+  }
+
+  //티켓 예매, 동시성 처리 메소드를 연결해주는 로직
+  private waitFinish(eventName: string, sec: number) {
+    return new Promise((resolve, reject) => {
+      const wait = setTimeout(() => {
+        this.eventEmitter.removeAllListeners(eventName);
+        resolve({
+          message: '대기중입니다.',
+        });
+      }, sec * 1000);
+      console.log(eventName);
+      const listenFn = ({
+        success,
+        exception,
+      }: {
+        success: boolean;
+        exception?: HttpException;
+      }) => {
+        clearTimeout(wait);
+        console.log(`Event received: ${eventName}, success: ${success}`);
+        this.eventEmitter.removeAllListeners(eventName);
+        //티켓 예매 성공할 때 받는 응답
+        success
+          ? resolve({
+              httpstatus: HttpStatus.CREATED,
+              message: SHOW_TICKET_MESSAGES.COMMON.TICKET.SUCCESS,
+            })
+          : reject(exception);
+      };
+      this.eventEmitter.addListener(eventName, listenFn);
+    });
+  }
+
   /* 티켓 예매 */
-  async createTicket(showId: number, createTicketDto: CreateTicketDto, user: User) {
+  async createTicket(
+    showId: number,
+    createTicketDto: CreateTicketDto,
+    user: User,
+    eventName: string
+  ) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -262,20 +434,20 @@ export class ShowsService {
       const schedule = await queryRunner.manager.findOne(Schedule, {
         where: {
           id: scheduleId,
-          showId,
+          showId: showId,
         },
       });
+
       if (!schedule) {
         throw new NotFoundException(SHOW_TICKET_MESSAGES.COMMON.SCHEDULE.NOT_FOUND);
       }
-
       //지정 좌석이 있는지 확인합니다.
       if (schedule.remainSeat <= SHOW_TICKETS.COMMON.SEAT.UNSIGNED) {
         throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.SEAT.NOT_ENOUGH);
       }
 
       //date와 time을 하나의 showTime으로 연결합니다.
-      const showTime = `${String(schedule.date)}T${String(schedule.time)}`;
+      const showTime = `${String(schedule.date)}T${String(schedule.time)}.000Z`;
 
       // 공연 시간 기준 2시간 전
       const twoHoursBeforeShowTime = subHours(showTime, 2);
@@ -291,6 +463,10 @@ export class ShowsService {
       // 사용자의 포인트 차감
       user.point -= show.price;
       await queryRunner.manager.save(User, user);
+
+      if (schedule.remainSeat <= SHOW_TICKETS.COMMON.SEAT.UNSIGNED) {
+        throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.SEAT.NOT_ENOUGH);
+      }
 
       const ticket = queryRunner.manager.create(Ticket, {
         userId: user.id,
@@ -313,11 +489,13 @@ export class ShowsService {
       await queryRunner.manager.save(Schedule, schedule);
       await queryRunner.commitTransaction();
 
-      return ticket;
+      //각각 성공, 실패 여부를 return 합니다.
+      return this.eventEmitter.emit(eventName, { success: true });
     } catch (error) {
       await queryRunner.rollbackTransaction();
+      return this.eventEmitter.emit(eventName, { success: false, exception: error });
+    } finally {
       await queryRunner.release();
-      throw error;
     }
   }
 

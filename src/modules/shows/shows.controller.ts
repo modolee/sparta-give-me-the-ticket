@@ -63,7 +63,7 @@ export class ShowsController {
    * */
   @Get(':showId')
   async getShow(@Param('showId') showId: number) {
-    return await this.showsService.getShow(+showId);
+    return await this.showsService.getShow(showId);
   }
 
   /**
@@ -78,7 +78,7 @@ export class ShowsController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.ADMIN)
   async updateShow(@Param('showId') showId: number, @Body() updateShowDto: UpdateShowDto) {
-    return await this.showsService.updateShow(+showId, updateShowDto);
+    return await this.showsService.updateShow(showId, updateShowDto);
   }
 
   /**
@@ -91,7 +91,7 @@ export class ShowsController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.ADMIN)
   async deleteShow(@Param('showId') showId: number) {
-    return await this.showsService.deleteShow(+showId);
+    return await this.showsService.deleteShow(showId);
   }
 
   /**
@@ -105,11 +105,11 @@ export class ShowsController {
   @Post(':showId/bookmark')
   @HttpCode(HttpStatus.CREATED)
   async createBookmark(@Param('showId') showId: number, @Req() req: any) {
-    const user: User = req.user;
-    await this.showsService.createBookmark(showId, user);
+    const bookmark = await this.showsService.createBookmark(showId, req.user);
     return {
       status: HttpStatus.CREATED,
       message: USER_BOOKMARK_MESSAGES.COMMON.BOOKMARK.SUCCESS.COMPLETED,
+      bookmarkId: bookmark.id,
     };
   }
 
@@ -147,8 +147,7 @@ export class ShowsController {
     @Body() createTicketDto: CreateTicketDto,
     @Req() req: any
   ) {
-    const user: User = req.user;
-    return this.showsService.createTicket(showId, createTicketDto, user);
+    return this.showsService.addTicketQueue(showId, createTicketDto, req.user);
   }
   /**
    * 티켓 환불
@@ -167,7 +166,6 @@ export class ShowsController {
     @Param('ticketId') ticketId: number,
     @Req() req: any
   ) {
-    await this.showsService.refundTicket(showId, ticketId, req.user);
-    return { status: HttpStatus.OK, message: SHOW_TICKET_MESSAGES.COMMON.REFUND.SUCCESS };
+    return await this.showsService.refundTicket(showId, ticketId, req.user);
   }
 }

@@ -1,5 +1,5 @@
 import { PartialType, PickType } from '@nestjs/swagger';
-import { IsEnum, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsEnum, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { ShowCategory } from 'src/commons/types/shows/show-category.type';
 import { Show } from 'src/entities/shows/show.entity';
 import { Type } from 'class-transformer';
@@ -14,31 +14,9 @@ class ShowDto extends PickType(Show, [
   'runtime',
   'location',
   'price',
-  'totalSeat',
 ] as const) {}
 export class UpdateShowDto extends PartialType(ShowDto) {
-  @IsString()
-  title?: string;
-
-  @IsString()
-  content?: string;
-
-  @IsEnum(ShowCategory, { message: SHOW_MESSAGES.COMMON.CATEGORY.INVALID })
-  category?: ShowCategory;
-
-  @IsNumber()
-  runtime?: number;
-
-  @IsString()
-  location?: string;
-
-  @IsNumber()
-  price?: number;
-
-  @IsNumber()
-  totalSeat?: number;
-
-  @ValidateNested()
-  @Type(() => CreateScheduleDto)
-  schedules?: CreateScheduleDto[];
+  @IsOptional()
+  @IsArray()
+  imageUrl?: string[];
 }

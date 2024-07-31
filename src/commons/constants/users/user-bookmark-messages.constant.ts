@@ -10,7 +10,10 @@ export const USER_BOOKMARK_MESSAGES = {
       ALREADY_EXISTS: '이미 찜해둔 공연입니다.',
       GET_LIST: {
         SUCCESS: '북마크 목록 조회에 성공했습니다.',
-        FAILURE: '북마크 목록 조회에 실패했습니다.',
+        FAILURE: {
+          FAIL: '북마크 목록 조회에 실패했습니다.',
+          NOT_FOUND: '북마크 목록이 없습니다.',
+        },
       },
     },
     CANCEL_BOOKMARK: {

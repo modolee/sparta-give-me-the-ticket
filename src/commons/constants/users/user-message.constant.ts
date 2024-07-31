@@ -1,7 +1,7 @@
 export const USER_MESSAGES = {
   USER: {
     COMMON: {
-      SUCCESS: '회원 탈퇴에 성공했습니다',
+      SUCCESS: '회원 탈퇴에 성공했습니다.',
       FAILURE: {
         FAIL: '회원 탈퇴에 실패했습니다.',
         NOT_FOUND: '회원 정보를 찾을 수 없습니다.',
@@ -44,6 +44,24 @@ export const USER_MESSAGES = {
       GET_LOG: {
         SUCCESS: '포인트 내역 조회에 성공했습니다.',
         FAILURE: '포인트 내역 조회에 실패했습니다.',
+      },
+    },
+    TICKET: {
+      GET_LIST: {
+        SUCCESS: '예매 목록 조회에 성공했습니다.',
+        FAILURE: {
+          FAIL: '예매 목록 조회에 실패했습니다.',
+          NOT_FOUND: '예매 목록이 없습니다.',
+        },
+      },
+    },
+    TRADE: {
+      GET_LOG: {
+        SUCCESS: '거래 내역 조회에 성공했습니다.',
+        FAILURE: {
+          FAIL: '거래 내역 조회에 실패했습니다.',
+          NOT_FOUND: '거래 내역이 없습니다.',
+        },
       },
     },
   },

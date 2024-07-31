@@ -1,13 +1,29 @@
-import { Injectable, Inject } from '@nestjs/common';
+import {
+  Injectable,
+  Catch,
+  ArgumentsHost,
+  HttpException,
+  HttpStatus,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
+import { addHours, startOfDay, subDays, subHours } from 'date-fns';
 import { CreateTradeDto } from './dto/create-trade.dto';
 import { UpdateTradeDto } from './dto/update-trade.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { NotFoundException } from '@nestjs/common';
 import { Redis } from 'ioredis';
+import { Inject } from '@nestjs/common';
+import { SERVER } from '../../commons/constants/server.constants';
+import { MESSAGES } from 'src/commons/constants/trades/messages';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
 
 //types
 import { Role } from 'src/commons/types/users/user-role.type';
+import { TicketStatus } from 'src/commons/types/shows/ticket.type';
+import { number } from 'joi';
 
 //entities
 import { Trade } from 'src/entities/trades/trade.entity';
@@ -16,7 +32,28 @@ import { Show } from 'src/entities/shows/show.entity';
 import { Schedule } from 'src/entities/shows/schedule.entity';
 import { Ticket } from 'src/entities/shows/ticket.entity';
 import { User } from 'src/entities/users/user.entity';
-import { number } from 'joi';
+
+//DataSource File
+import { DataSource, Like } from 'typeorm';
+// const AppDataSource = new DataSource({
+//   type: 'mysql',
+//   host: SERVER.HOST,
+//   port: +SERVER.PORT,
+//   username: SERVER.USER,
+//   password: SERVER.PASSWORD,
+//   database: SERVER.DATABASE,
+//   entities: [Trade, TradeLog, Show, Schedule, Ticket, User],
+//   synchronize: true,
+//   logging: false,
+// });
+
+// AppDataSource.initialize()
+//   .then(() => {
+//     console.log('Data Source has been initialized!');
+//   })
+//   .catch((err) => {
+//     console.error(`Error during Data Source initialization:`, err);
+//   });
 
 @Injectable()
 export class TradesService {
@@ -33,6 +70,7 @@ export class TradesService {
     private TicketRepository: Repository<Ticket>,
     @InjectRepository(User)
     private UserRepository: Repository<User>,
+    private dataSource: DataSource,
     @Inject('REDIS_CLIENT') private redisClient: Redis
   ) {}
 
@@ -53,13 +91,17 @@ export class TradesService {
 
     await this.redisClient.set(createTicketId, value, (err, result) => {
       if (err) {
-        throw new Error('티켓을 생성할 수 없습니다 Redis에 에러 발생');
+        throw new Error(
+          `${MESSAGES.TRADES.CAN_NOT_CREATE.TICKET} ${MESSAGES.TRADES.ERROR_OCCUR.REDIS}`
+        );
       } else {
         this.redisClient.expireat(key, unixTimeStamp, (err, result) => {
           if (err) {
-            throw new Error('티켓을 생성할 수 없습니다 Redis에 에러 발생');
+            throw new Error(
+              `${MESSAGES.TRADES.CAN_NOT_CREATE.TICKET} ${MESSAGES.TRADES.ERROR_OCCUR.REDIS}`
+            );
           } else {
-            return { message: '성공적으로 티켓이 발급되었습니다.' };
+            return { message: `${MESSAGES.TRADES.SUCCESSFULLY_CREATE.TICKET} ${'-Redis에서'}` };
           }
         });
       }
@@ -70,9 +112,11 @@ export class TradesService {
   async deleteRedisTicket(deleteTicketId: string) {
     await this.redisClient.del(deleteTicketId, (err, result) => {
       if (err) {
-        throw new Error('티켓을 생성할 수 없습니다 Redis에 에러 발생');
+        throw new Error(
+          `${MESSAGES.TRADES.CAN_NOT_CREATE.TICKET} ${MESSAGES.TRADES.ERROR_OCCUR.REDIS}`
+        );
       } else {
-        return { message: '레디스에서 성공적으로 티켓이 제거 되었습니다.' };
+        return { message: MESSAGES.TRADES.SUCCESSFULLY_DELETE.REDIS_TICKET };
       }
     });
   }
@@ -93,6 +137,7 @@ export class TradesService {
 
     return closeTime;
   }
+
   //티켓이 활성 상태임을 알려주는 함수
   async checkRedisTicket(getTicketId: number) {
     const ticket = await this.redisClient.get(String(getTicketId));
@@ -101,13 +146,14 @@ export class TradesService {
   }
 
   //=========ConvenienceFunction======================
-  //중고 거래 목록 보기//완료 (검증 대부분 완료)
+
+  //<1> 중고 거래 목록 보기//완료 (검증 대부분 완료)
   async getList() {
     let trade_list = await this.TradeRepository.find({
-      select: { id: true, showId: true, price: true },
+      select: { id: true, ticketId: true, createdAt: true, closedAt: true },
     });
 
-    //중고 거래 목록 조회
+    //중고 거래 목록 조회 //테스트 완료
     //trade_list에 공연에서 가져온 주소값을 병합
     trade_list = await Promise.all(
       trade_list.map(async (trade) => {
@@ -118,89 +164,94 @@ export class TradesService {
 
         //show에서 장소와 이름을 추가,schedule에서 날짜와 시간을 추가
         if (ticket) {
+          trade['title'] = ticket.title;
+          trade['price'] = ticket.price;
           trade['date'] = ticket.date;
           trade['time'] = ticket.time;
+          delete trade.ticketId;
         }
         return trade;
       })
     );
     if (!trade_list[0]) {
-      return { message: '중고거래 목록이 존재하지 않습니다' };
+      return { message: MESSAGES.TRADES.NOT_EXISTS.TRADE_LIST };
     }
 
     return trade_list;
   }
 
-  //중고 거래 상세 보기 //완료 (검증 대부분 완료)
+  //<2> 중고 거래 상세 보기 //수정 필요 리스트가 아님 (검증 대부분 완료) //테스트 완료
   async getTradeDetail(tradeId: number) {
-    let trade_list = await this.TradeRepository.find({
-      select: { id: true, showId: true, price: true, sellerId: true },
-    });
+    const trade = await this.TradeRepository.findOne({ where: { id: tradeId } });
+    if (!trade) throw new NotFoundException(MESSAGES.TRADES.NOT_EXISTS.TRADE);
+    const show = await this.ShowRepository.findOne({ where: { id: trade.showId } });
+    if (!show) throw new NotFoundException(MESSAGES.TRADES.NOT_EXISTS.SHOW);
+    const ticket = await this.TicketRepository.findOne({ where: { id: trade.ticketId } });
+    if (!ticket) throw new NotFoundException(MESSAGES.TRADES.NOT_EXISTS.TICKET);
 
-    //trade_list에 공연에서 가져온 주소값을 병합
-    trade_list = await Promise.all(
-      trade_list.map(async (trade) => {
-        //show를 조회
-        const show = await this.ShowRepository.findOne({
-          where: { id: trade.showId },
-        });
-        //스케쥴을 조회
-        const schedule = await this.ScheduleRepository.findOne({
-          where: { id: trade.showId },
-        });
+    trade['title'] = show.title;
+    trade['origin_price'] = show.price;
+    trade['location'] = ticket.location;
+    trade['date'] = ticket.date;
+    trade['time'] = ticket.time;
+    delete trade.ticketId;
+    delete trade.flag;
+    delete trade.showId;
 
-        //show에서 장소와 이름, 가격을 추가,schedule에서 날짜와 시간을 추가
-        if (show) {
-          trade['location'] = show.location;
-          trade['title'] = show.title;
-          trade['origin_price'] = show.price;
-          trade['date'] = schedule.date;
-          trade['time'] = schedule.time;
-        }
-        return trade;
-      })
-    );
-
-    return trade_list;
+    return trade;
   }
 
-  //중고거래 생성 함수 //완료(검증 대부분 완료)
-  //sellerId는 인증을 통해 받게 될 예정 //sellerId,ticket_id,showId,price 까지 구함, closedAt만 구하면 됨(반쯤 구한듯 하다)
+  //<3> 중고거래 생성 함수 //완료(검증 대부분 완료) 테스트 완료
   async createTrade(createTradeDto: CreateTradeDto, sellerId: number) {
     const { ticketId, price } = createTradeDto;
 
     //검증 타일 START==================================================
 
-    //티켓이 존재하는지 검증
+    //1.데이터 베이스 검증
+
+    //1-1 티켓이 존재하는지 검증
     const ticket = await this.TicketRepository.findOne({ where: { id: ticketId } });
-    if (!ticket) throw new NotFoundException('해당 티켓이 존재하지 않습니다');
-
-    //해당 티켓이 사용 가능한지 검증 (레디스 검증)
-    if (!(await this.redisClient.get(String(ticketId))))
-      throw new Error('해당 티켓은 환불도 거래도 불가능합니다!');
-
-    //가격이 기존의 티켓 가격보다 같거나 낮은지 검증
-    if (ticket.price < price) {
-      throw new Error('원래 티켓 가격보다 높게 설정할 수 없습니다!');
-    }
-
-    //본인의 티켓인지 검증
-    if (ticket.userId !== sellerId) {
-      return new Error('본인의 티켓만 판매 가능합니다!');
-    }
+    const { date, time } = ticket;
+    if (!ticket) throw new NotFoundException(MESSAGES.TRADES.NOT_EXISTS.TICKET);
 
     const showId = ticket.showId;
 
-    //해당 공연이 존재하는지 검증
+    //1-2 해당 공연이 존재하는지 검증
     const show = await this.ShowRepository.findOne({ where: { id: showId } });
-    if (!show) throw new NotFoundException('해당 공연이 존재하지 않습니다');
+    if (!show) throw new NotFoundException(MESSAGES.TRADES.NOT_EXISTS.SHOW);
 
+    //1-3 해당 일정이 존재하는지 검증
     const schedule = await this.ScheduleRepository.findOne({
       where: { showId: showId, time: ticket.time },
     });
 
-    //해당 일정이 존재하는지 검증
-    if (!schedule) throw new NotFoundException('해당 일정이 존재하지 않습니다');
+    if (!schedule) throw new NotFoundException(MESSAGES.TRADES.NOT_EXISTS.SCHEDULE);
+
+    //1-4 이미 이 티켓이 중고거래에 올라와있는지 검증
+    const trade = await this.TradeRepository.find({ where: { ticketId: ticketId } });
+
+    if (trade[0]) return { message: MESSAGES.TRADES.ALREADY_EXISTS.IN_TRADE_TICKET };
+
+    //해당 티켓이 사용 가능한지 검증 (레디스 검증)
+    if (
+      !(await this.redisClient.get(String(ticketId))) &&
+      new Date().getTime() >=
+        this.combineDateAndTime(String(date), time).getTime() - 60 * 1000 * 60 * 2
+    )
+      throw new BadRequestException('해당 티켓은 환불도 거래도 불가능합니다!');
+
+    //가격이 기존의 티켓 가격보다 같거나 낮은지 검증
+    if (ticket.price < price) {
+      throw new BadRequestException(
+        `${MESSAGES.TRADES.CAN_NOT_UPDATE.TICKET_PRICE} 원래가격: ${show.price}, 현재가격 ${ticket.price}`
+      );
+    }
+
+    //본인의 티켓인지 검증
+    if (ticket.userId !== sellerId) {
+      return new BadRequestException(MESSAGES.TRADES.NOT_EXISTS.authority);
+    }
+
     //검증 타일 END==================================================
 
     //정책에 따라 티켓의 가격을 중고거래 게시된 시점의 가격으로 고정
@@ -213,65 +264,91 @@ export class TradesService {
     // return { sellerId, ticketId, showId, price, closedAt };
   }
 
-  //중고 거래 수정 메서드 //완료(검증 대부분 완료)
-  async updateTrade(updateTradeDto: UpdateTradeDto, userId: number) {
-    const { price, tradeId } = updateTradeDto;
+  //<4> 중고 거래 수정 메서드 //완료(검증 대부분 완료)  //테스트 완료
+  async updateTrade(tradeId, updateTradeDto: UpdateTradeDto, userId: number) {
+    const { price } = updateTradeDto;
 
     const trade = await this.TradeRepository.findOne({ where: { id: tradeId } });
-    if (!trade) throw new NotFoundException(`해당 거래가 존재하지 않습니다`);
+    if (!trade) throw new NotFoundException(MESSAGES.TRADES.NOT_EXISTS.TRADE);
 
-    if (trade.sellerId !== userId) throw Error('해당 중고거래의 게시자가 아닙니다');
+    if (trade.sellerId !== userId)
+      throw new BadRequestException(MESSAGES.TRADES.NOT_EXISTS.authority);
 
-    return await this.TradeRepository.update(tradeId, { price });
+    //티켓과 중고거래의 가격 둘다 변경(어차피 참고하는 것은 티켓의 가격뿐이기에, 추후 수정 예정, 엔티티에서 중고거래의 가격은 사라져도 될것으로 보임)
+    await this.TradeRepository.update({ id: tradeId }, { price: price });
+    await this.TicketRepository.update({ id: trade.ticketId }, { price: price });
+
+    const afterTrade = await this.TradeRepository.findOne({ where: { id: tradeId } });
+    return afterTrade;
   }
 
-  //중고 거래 삭제 메서드  //완료(검증 대부분 완료)
+  //<5> 중고 거래 삭제 메서드  //완료(검증 대부분 완료)
   async deleteTrade(tradeId: number, userId: number) {
     const trade = await this.TradeRepository.findOne({ where: { id: tradeId } });
-    if (!trade) throw new NotFoundException(`해당 거래가 존재하지 않습니다`);
+    if (!trade) throw new NotFoundException(MESSAGES.TRADES.NOT_EXISTS.TRADE);
 
     if (trade.sellerId !== userId) {
-      throw Error('해당 중고거래의 게시자가 아닙니다');
+      throw new BadRequestException(MESSAGES.TRADES.NOT_EXISTS.authority);
     }
 
     //모든 검증이 끝난 뒤 삭제 로직
     return await this.TradeRepository.delete(tradeId);
   }
 
-  //티켓 구매 메서드 (buyerId는 기존의 userId와 같다) (현재 수정중)
+  //<6> 티켓 구매 메서드 (buyerId는 기존의 userId와 같다) (현재 수정중)
   async createTicket(tradeId: number, buyerId: number) {
     //해당 거래 존재 확인
+
     const trade = await this.TradeRepository.findOne({ where: { id: tradeId } });
-    if (!trade) throw new NotFoundException(`해당 거래가 존재하지 않습니다`);
+    if (!trade) throw new NotFoundException(MESSAGES.TRADES.NOT_EXISTS.TRADE);
+
+    //해당 티켓 존재 확인
 
     let ticket = await this.TicketRepository.findOne({ where: { id: trade.ticketId } });
+    if (!ticket) throw new NotFoundException(MESSAGES.TRADES.NOT_EXISTS.TICKET);
 
-    //buyer의 유저 정보 가져오기
+    //구매자와 판매자의 유저 정보 가져오기
+
+    const seller = await this.UserRepository.findOne({ where: { id: ticket.userId } });
+    if (!seller) throw new NotFoundException(MESSAGES.TRADES.NOT_EXISTS.SELLER);
     const buyer = await this.UserRepository.findOne({ where: { id: buyerId } });
+    if (!buyer) throw new NotFoundException(MESSAGES.TRADES.NOT_EXISTS.BUYER);
 
     //현재 가장 높은 ticketId보다 1 높은 값 (새로 재발급 하기 위해서)
     let query = await this.TicketRepository.query('SELECT MAX(id) AS maxId FROM tickets');
     const newId = query[0].maxId + 1;
 
-    //새로운 티켓 id를 레디스에 저장
-    this.addRedisTicket(String(newId), trade.closedAt);
+    //<6-1>쿼리 러너문 만들기=========트랜잭션 시작=========가져온 변수:trade,ticket,seller,buyer,===============================================
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      //새로운 티켓 id를 레디스에 저장
+      this.addRedisTicket(String(newId), trade.closedAt);
+
+      //검증 타일===================
+      if (buyer.point < ticket.price)
+        throw new BadRequestException(MESSAGES.TRADES.NOT_ENOUGH.MONEY);
+      buyer.point -= ticket.price;
+      await queryRunner.manager.save(User, buyer);
+
+      //구매자에게 전할 새로운 티켓을 생성하고 새로운 티켓을 데이터베이스에 저장
+      const newTicket = ticket;
+      newTicket.userId = buyerId;
+      newTicket.nickname = buyer.nickname;
+
+      await queryRunner.manager.save(Ticket, newTicket);
+
+      await queryRunner.commitTransaction();
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      return { message: MESSAGES.TRADES.FAILED.PURCHASE };
+    } finally {
+      await queryRunner.release();
+    }
 
     //티켓 재발급 로직==================
-    //새로운 티켓을 생성하고 그 정보를 데이터베이스에 저장
-    ticket.userId = buyerId;
-
-    await this.TicketRepository.save({
-      userId: ticket.userId,
-      showId: ticket.showId,
-      scheduleId: ticket.scheduleId,
-      nickname: buyer.nickname,
-      title: ticket.title,
-      time: ticket.time,
-      runtime: ticket.runtime,
-      date: ticket.date,
-      location: ticket.location,
-      price: ticket.price,
-    });
 
     // //기존에 존재하는 id를 레디스에서 제거
     this.deleteRedisTicket(String(trade.ticketId));
@@ -279,13 +356,57 @@ export class TradesService {
     return { newId };
   }
 
-  //=======================테스트 함수 START====================
-  async test(ticketId: number, userId: number) {
-    return;
+  //중고 거래 로그 조회
+  async getLogs(userId: number) {
+    const buyLogs = await this.TradeLogRepository.find({
+      where: { buyerId: userId },
+    });
+    const sellLogs = await this.TradeLogRepository.find({
+      where: { sellerId: userId },
+    });
+
+    // buyLogs와 sellLogs 병합
+    const logs = [...buyLogs, ...sellLogs];
+
+    // 병합된 배열을 id 기준으로 정렬
+    logs.sort((a, b) => a.id - b.id);
+
+    if (!logs[0]) return { message: '중고거래 로그가 존재하지 않습니다!' };
+    else return logs;
   }
-  async make_admin(userId: number) {
-    const user = await this.UserRepository.update({ id: userId }, { role: Role.ADMIN });
-    return { message: '성공적으로 관리자로 권한이 변경되었습니다.' };
+
+  //=======================테스트 함수 START====================
+  async hello(a: number) {
+    return { message: 'hello' };
+  }
+
+  async test() {
+    console.log('bbbbbbbbbbbbbbbbbbbbbbbb');
+    // return {
+    //   PORT: process.env.SERVER_PORT,
+    //   HOST: process.env.DB_HOST,
+    //   USER: process.env.DB_USER,
+    //   PASSWORD: process.env.DB_PASSWORD,
+    //   DATABASE: process.env.DB_NAME,
+    // };
+  }
+
+  async changeRole(userId: number) {
+    const user = await this.UserRepository.findOne({ where: { id: userId } });
+
+    if (user.role === Role.USER) {
+      await this.UserRepository.update({ id: userId }, { role: Role.ADMIN });
+      return { message: MESSAGES.TRADES.SUCCESSFULLY_UPDATE.CHANGE_ROLE_ADMIN };
+    } else if (user.role === Role.ADMIN) {
+      await this.UserRepository.update({ id: userId }, { role: Role.USER });
+      return { message: MESSAGES.TRADES.SUCCESSFULLY_UPDATE.CHANGE_ROLE_USER };
+    }
+  }
+
+  async changRemainSeat(scheduleId) {
+    const seat: number = 45;
+    await this.ScheduleRepository.update({ id: scheduleId }, { remainSeat: seat });
+    return { message: `좌석이 ${seat}로 수정되었습니다.` };
   }
   //=======================테스트 함수 END====================
 }
