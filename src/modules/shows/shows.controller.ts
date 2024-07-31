@@ -147,7 +147,11 @@ export class ShowsController {
     @Body() createTicketDto: CreateTicketDto,
     @Req() req: any
   ) {
-    return this.showsService.addTicketQueue(showId, createTicketDto, req.user);
+    await this.showsService.addTicketQueue(showId, createTicketDto, req.user);
+    return {
+      status: HttpStatus.OK,
+      message: SHOW_TICKET_MESSAGES.COMMON.TICKET.SUCCESS,
+    };
   }
   /**
    * 티켓 환불
@@ -166,6 +170,10 @@ export class ShowsController {
     @Param('ticketId') ticketId: number,
     @Req() req: any
   ) {
-    return await this.showsService.refundTicket(showId, ticketId, req.user);
+    await this.showsService.refundTicket(showId, ticketId, req.user);
+    return {
+      status: HttpStatus.OK,
+      message: SHOW_TICKET_MESSAGES.COMMON.REFUND.SUCCESS,
+    };
   }
 }

@@ -17,8 +17,8 @@ import { Redis } from 'ioredis';
 import { Inject } from '@nestjs/common';
 import { SERVER } from '../../commons/constants/server.constants';
 import { MESSAGES } from 'src/commons/constants/trades/messages';
-import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 //types
 import { Role } from 'src/commons/types/users/user-role.type';

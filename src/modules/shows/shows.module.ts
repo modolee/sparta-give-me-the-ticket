@@ -8,21 +8,25 @@ import { Ticket } from 'src/entities/shows/ticket.entity';
 import { Bookmark } from 'src/entities/users/bookmark.entity';
 import { Schedule } from 'src/entities/shows/schedule.entity';
 import { ConfigModule } from '@nestjs/config';
-import { BullModule } from '@nestjs/bull';
-import { QueueConsumer } from './queue.consumer';
-import { Image } from 'src/entities/images/image.entity';
-import { ImagesService } from 'src/modules/images/images.service';
+
+
+import { QueueConsumer } from './shows.consumer';
+import { BullModule } from '@nestjs/bullmq';
+import { TICKET_QUEUE } from 'src/commons/constants/queue.constant';
+import { TicketQueueEvents } from 'src/queue-events/ticket.queue-event';
+
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     BullModule.registerQueue({
-      name: 'ticketQueue',
+      name: TICKET_QUEUE,
     }),
     TypeOrmModule.forFeature([Show, User, Ticket, Bookmark, Schedule, Image]),
   ],
   controllers: [ShowsController],
-  providers: [ShowsService, QueueConsumer, ImagesService],
-  exports: [TypeOrmModule, BullModule],
+
+  providers: [ShowsService, QueueConsumer, TicketQueueEvents, ImagesService],
+  exports: [TypeOrmModule],
 })
 export class ShowsModule {}
