@@ -9,12 +9,11 @@ import { Bookmark } from 'src/entities/users/bookmark.entity';
 import { Schedule } from 'src/entities/shows/schedule.entity';
 import { ConfigModule } from '@nestjs/config';
 
-
 import { QueueConsumer } from './shows.consumer';
 import { BullModule } from '@nestjs/bullmq';
 import { TICKET_QUEUE } from 'src/commons/constants/queue.constant';
 import { TicketQueueEvents } from 'src/queue-events/ticket.queue-event';
-
+import { ImagesService } from '../images/images.service';
 
 @Module({
   imports: [
