@@ -10,6 +10,8 @@ import { Schedule } from 'src/entities/shows/schedule.entity';
 import { ConfigModule } from '@nestjs/config';
 import { BullModule } from '@nestjs/bull';
 import { QueueConsumer } from './queue.consumer';
+import { Image } from 'src/entities/images/image.entity';
+import { ImagesService } from 'src/modules/images/images.service';
 
 @Module({
   imports: [
@@ -17,10 +19,10 @@ import { QueueConsumer } from './queue.consumer';
     BullModule.registerQueue({
       name: 'ticketQueue',
     }),
-    TypeOrmModule.forFeature([Show, User, Ticket, Bookmark, Schedule]),
+    TypeOrmModule.forFeature([Show, User, Ticket, Bookmark, Schedule, Image]),
   ],
   controllers: [ShowsController],
-  providers: [ShowsService, QueueConsumer],
-  exports: [TypeOrmModule],
+  providers: [ShowsService, QueueConsumer, ImagesService],
+  exports: [TypeOrmModule, BullModule],
 })
 export class ShowsModule {}
