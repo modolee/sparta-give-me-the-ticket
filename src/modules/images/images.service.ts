@@ -111,7 +111,7 @@ export class ImagesService {
   async extractKeyFromUrl(url: string) {
     const urlParts = url.split('/');
     // URL의 마지막 부분이 key값
-    const key = urlParts.slice(3).join('/');
+    const key = urlParts.slice(4).join('/');
     return key;
   }
 

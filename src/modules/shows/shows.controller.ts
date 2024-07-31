@@ -63,7 +63,7 @@ export class ShowsController {
    * */
   @Get(':showId')
   async getShow(@Param('showId') showId: number) {
-    return await this.showsService.getShow(+showId);
+    return await this.showsService.getShow(showId);
   }
 
   /**
@@ -78,7 +78,7 @@ export class ShowsController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.ADMIN)
   async updateShow(@Param('showId') showId: number, @Body() updateShowDto: UpdateShowDto) {
-    return await this.showsService.updateShow(+showId, updateShowDto);
+    return await this.showsService.updateShow(showId, updateShowDto);
   }
 
   /**
@@ -91,7 +91,7 @@ export class ShowsController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.ADMIN)
   async deleteShow(@Param('showId') showId: number) {
-    return await this.showsService.deleteShow(+showId);
+    return await this.showsService.deleteShow(showId);
   }
 
   /**

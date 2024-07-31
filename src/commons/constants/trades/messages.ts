@@ -1,9 +1,11 @@
 export const MESSAGES = {
   TRADES: {
+    IS_EXPIRED: { TICKET: '해당 티켓은 만료되었습니다.' },
     NOT_INPUT: { TICKET_ID: '티켓의 ID를 입력해주십시오.', PRICE: '가격을 입력해주십시오' },
     NOT_EXISTS: {
-      authority: '권한이 없거나 해당 게시물의 작성자가 아닙니다',
+      AUTHORITY: '권한이 없거나 해당 게시물의 작성자가 아닙니다',
       TRADE_LIST: '중고거래 목록이 존재하지 않습니다',
+      TRADE_LOG: '중고거래 로그가 존재하지 않습니다!',
       TRADE: '존재하지 않는 거래입니다.',
       SHOW: '존재하지 않는 공연입니다.',
       TICKET: '존재하지 않는 티켓입니다.',
@@ -29,7 +31,7 @@ export const MESSAGES = {
       TRADE: '성공적으로 거래가 제거 되었습니다!',
       REDIS_TICKET: '레디스에서 성공적으로 티켓이 제거 되었습니다.',
     },
-
+    CAN_NOT_LOAD: {},
     CAN_NOT_CREATE: {
       TICKET: '티켓을 생성할 수 없습니다',
       TRADE: '거래를 생성할 수 없습니다',
@@ -40,6 +42,7 @@ export const MESSAGES = {
       REDIS: 'Redis에서 에러 발생',
     },
     FAILED: {
+      CREATE_TRADE: '거래 생성에 실패했습니다',
       PURCHASE: '구매에 실패했습니다',
     },
   },
