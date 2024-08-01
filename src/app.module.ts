@@ -13,6 +13,8 @@ import { ImagesModule } from './modules/images/images.module';
 import { RedisModule } from './modules/redis/redis.module';
 import { BullModule } from '@nestjs/bullmq';
 import { SearchModule } from './modules/shows/search/search.module';
+import { ViewsController } from './views/index.view.controller';
+import { AuthViewsController } from './views/auth/auth.view.controller';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -40,7 +42,7 @@ import { SearchModule } from './modules/shows/search/search.module';
     RedisModule,
     SearchModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, ViewsController, AuthViewsController],
   providers: [AppService],
 })
 export class AppModule {}
