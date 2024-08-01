@@ -92,7 +92,7 @@ export class ShowsService {
       await queryRunner.commitTransaction();
 
       //Elasticsearch 인덱싱
-      await this.searchService.creatShowIndex(show, images);
+      await this.searchService.createShowIndex(show);
 
       return {
         status: HttpStatus.CREATED,
@@ -147,7 +147,7 @@ export class ShowsService {
 
     return {
       status: HttpStatus.OK,
-      message: SHOW_MESSAGES.GET_LIST.SUCCEED.LIST,
+      message: SHOW_MESSAGES.GET_LIST.SUCCEED,
       data: results,
       total,
       page,

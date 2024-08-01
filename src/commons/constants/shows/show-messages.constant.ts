@@ -52,10 +52,8 @@ export const SHOW_MESSAGES = {
     FAIL: '공연 생성에 실패했습니다.',
   },
   GET_LIST: {
-    SUCCEED: {
-      LIST: '공연 목록 조회에 성공했습니다.',
-      SEARCH: '공연 검색에 성공했습니다.',
-    },
+    SUCCEED: '공연 조회에 성공했습니다.',
+    FAIL: '공연 조회에 실패했습니다.',
   },
   GET: {
     SUCCEED: '공연 상세 조회에 성공했습니다.',
