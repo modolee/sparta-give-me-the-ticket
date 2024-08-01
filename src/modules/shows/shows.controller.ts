@@ -134,6 +134,7 @@ export class ShowsController {
   /**
    * 티켓 예매
    * @param showId
+   * @param createTicketDto
    * @returns
    */
   @ApiBearerAuth()
@@ -147,10 +148,11 @@ export class ShowsController {
     @Body() createTicketDto: CreateTicketDto,
     @Req() req: any
   ) {
-    await this.showsService.addTicketQueue(showId, createTicketDto, req.user);
+    const ticket = await this.showsService.addTicketQueue(showId, createTicketDto, req.user);
     return {
       status: HttpStatus.OK,
       message: SHOW_TICKET_MESSAGES.COMMON.TICKET.SUCCESS,
+      ticket,
     };
   }
   /**
