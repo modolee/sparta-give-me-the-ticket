@@ -1,3 +1,12 @@
+//others
+
+import { addHours, startOfDay, subDays, subHours } from 'date-fns';
+
+//Dto
+import { CreateTradeDto } from './dto/create-trade.dto';
+import { UpdateTradeDto } from './dto/update-trade.dto';
+
+//error Type
 import {
   Injectable,
   Catch,
@@ -6,21 +15,26 @@ import {
   HttpStatus,
   BadRequestException,
   ConflictException,
+  NotFoundException,
 } from '@nestjs/common';
-import { addHours, startOfDay, subDays, subHours } from 'date-fns';
-import { CreateTradeDto } from './dto/create-trade.dto';
-import { UpdateTradeDto } from './dto/update-trade.dto';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { NotFoundException } from '@nestjs/common';
-import { Redis } from 'ioredis';
+
+//DIP
 import { Inject } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Repository } from 'typeorm';
+
+//constants
 import { SERVER } from '../../commons/constants/server.constants';
 import { MESSAGES } from 'src/commons/constants/trades/messages';
-import { InjectQueue } from '@nestjs/bullmq';
+
+//transaction
+import { Redis } from 'ioredis';
 import { Queue } from 'bullmq';
+import { DataSource, Like } from 'typeorm';
 
 //types
+import { QUEUES } from 'src/commons/constants/queue.constant';
 import { Role } from 'src/commons/types/users/user-role.type';
 import { TicketStatus } from 'src/commons/types/shows/ticket.type';
 import { number } from 'joi';
@@ -34,7 +48,7 @@ import { Ticket } from 'src/entities/shows/ticket.entity';
 import { User } from 'src/entities/users/user.entity';
 
 //DataSource File
-import { DataSource, Like } from 'typeorm';
+
 // const AppDataSource = new DataSource({
 //   type: 'mysql',
 //   host: SERVER.HOST,
@@ -70,6 +84,8 @@ export class TradesService {
     private TicketRepository: Repository<Ticket>,
     @InjectRepository(User)
     private UserRepository: Repository<User>,
+    @InjectQueue(QUEUES.TRADE_QUEUE) private ticketQueue: Queue,
+
     private dataSource: DataSource,
     @Inject('REDIS_CLIENT') private redisClient: Redis
   ) {}
