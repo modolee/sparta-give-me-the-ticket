@@ -8,10 +8,16 @@ import { User } from './entities/users/user.entity';
 import { ScheduleSeeder } from './seeders/schedule.seeder';
 import { UserSeeder } from './seeders/user.seeder';
 import { typeOrmModuleOptions } from './configs/database.config';
+import { configModuleValidationSchema } from './configs/env-validation.config';
 
 seeder({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validationSchema: configModuleValidationSchema,
+    }),
+
     TypeOrmModule.forRootAsync(typeOrmModuleOptions),
     TypeOrmModule.forFeature([Show, User, Schedule]),
   ],
-}).run([ShowSeeder, UserSeeder, ScheduleSeeder]);
+}).run([UserSeeder, ShowSeeder, ScheduleSeeder]);

@@ -17,7 +17,6 @@ import { Ticket } from './ticket.entity';
 
 @Entity({ name: 'schedules' })
 export class Schedule {
-  @Factory((faker) => faker.number.int({ min: 1, max: 20 }))
   @PrimaryGeneratedColumn({ unsigned: true })
   id: number;
 
