@@ -453,7 +453,6 @@ export class ShowsService {
       await queryRunner.release();
       return ticket;
       //각각 성공, 실패 여부를 return 합니다.
-      // this.eventEmitter.emit(user.nickname, { success: true });
     } catch (error) {
       await queryRunner.rollbackTransaction();
       await queryRunner.release();
