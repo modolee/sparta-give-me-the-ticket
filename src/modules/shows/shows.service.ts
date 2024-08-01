@@ -2,50 +2,47 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
-  HttpException,
   HttpStatus,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Show } from 'src/entities/shows/show.entity';
-import { Ticket } from 'src/entities/shows/ticket.entity';
-import { Bookmark } from 'src/entities/users/bookmark.entity';
-import { User } from 'src/entities/users/user.entity';
-import { Image } from 'src/entities/images/image.entity';
 import { DataSource, In, Like, Repository } from 'typeorm';
-import { CreateShowDto } from './dto/create-show.dto';
-import { USER_BOOKMARK_MESSAGES } from 'src/commons/constants/users/user-bookmark-messages.constant';
-import { SHOW_TICKET_MESSAGES } from 'src/commons/constants/shows/show-ticket-messages.constant';
-import { SHOW_TICKETS } from 'src/commons/constants/shows/show-tickets.constant';
-import { TicketStatus } from 'src/commons/types/shows/ticket.type';
-import { DeleteBookmarkDto } from './dto/delete-bookmark.dto';
-import { addHours, startOfDay, subDays, subHours } from 'date-fns';
-import { UpdateShowDto } from './dto/update-show.dto';
-import { SHOW_MESSAGES } from 'src/commons/constants/shows/show-messages.constant';
-import { GetShowListDto } from './dto/get-show-list.dto';
-import { CreateTicketDto } from './dto/create-ticket-dto';
+import { Show } from 'src/entities/shows/show.entity';
+import { User } from 'src/entities/users/user.entity';
+import { Bookmark } from 'src/entities/users/bookmark.entity';
 import { Schedule } from 'src/entities/shows/schedule.entity';
-
+import { Ticket } from 'src/entities/shows/ticket.entity';
+import { Image } from 'src/entities/images/image.entity';
+import { CreateShowDto } from './dto/create-show.dto';
+import { GetShowListDto } from './dto/get-show-list.dto';
+import { UpdateShowDto } from './dto/update-show.dto';
+import { DeleteBookmarkDto } from './dto/delete-bookmark.dto';
+import { CreateTicketDto } from './dto/create-ticket-dto';
+import { TicketStatus } from 'src/commons/types/shows/ticket.type';
+import { SHOW_MESSAGES } from 'src/commons/constants/shows/show-messages.constant';
+import { SHOW_TICKETS } from 'src/commons/constants/shows/show-tickets.constant';
+import { SHOW_TICKET_MESSAGES } from 'src/commons/constants/shows/show-ticket-messages.constant';
+import { USER_BOOKMARK_MESSAGES } from 'src/commons/constants/users/user-bookmark-messages.constant';
+import { ImagesService } from '../images/images.service';
+import { SearchService } from './search/search.service';
+import { addHours, startOfDay, subDays, subHours } from 'date-fns';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { ImagesService } from '../images/images.service';
-
 import { QUEUES } from 'src/commons/constants/queue.constant';
 import { TicketQueueEvents } from 'src/queue-events/ticket.queue-event';
-
 @Injectable()
 export class ShowsService {
   constructor(
     @InjectRepository(Show) private showRepository: Repository<Show>,
     @InjectRepository(Bookmark) private bookmarkRepository: Repository<Bookmark>,
-    @InjectRepository(Schedule) private scheduleRepository: Repository<Schedule>,
     @InjectRepository(Image) private imagesRepository: Repository<Image>,
     @InjectQueue(QUEUES.TICKET_QUEUE) private ticketQueue: Queue,
     private readonly ticketQueueEvents: TicketQueueEvents,
     private dataSource: DataSource,
-    private readonly imagesService: ImagesService
+    private readonly imagesService: ImagesService,
+    private readonly searchService: SearchService
   ) {}
 
   /*공연 생성 */
@@ -94,6 +91,9 @@ export class ShowsService {
       //트랜잭션 커밋
       await queryRunner.commitTransaction();
 
+      //Elasticsearch 인덱싱
+      await this.searchService.createShowIndex(show);
+
       return {
         status: HttpStatus.CREATED,
         message: SHOW_MESSAGES.CREATE.SUCCEED,
@@ -115,7 +115,6 @@ export class ShowsService {
           imageUrl: images.map(({ imageUrl }) => imageUrl),
           createdAt: show.createdAt,
           updatedAt: show.updatedAt,
-          deletedAt: show.deletedAt,
         },
       };
     } catch (error) {
@@ -133,21 +132,12 @@ export class ShowsService {
   /*공연 목록 조회 */
   async getShowList(getShowListDto: GetShowListDto) {
     const { category, search, page, limit } = getShowListDto;
-
-    const [shows, total] = await this.showRepository.findAndCount({
-      where: {
-        ...(category && { category }),
-        ...(search && { title: Like(`%${search}%`) }),
-        //도커 또는 aws 클러스터 하나 만들어서 서버 띄우기
-      },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
+    const { results, total } = await this.searchService.searchShows(category, search, page, limit);
 
     return {
-      status: HttpStatus.CREATED,
-      message: SHOW_MESSAGES.GET_LIST.SUCCEED.LIST,
-      data: shows,
+      status: HttpStatus.OK,
+      message: SHOW_MESSAGES.GET_LIST.SUCCEED,
+      data: results,
       total,
       page,
       totalPages: Math.ceil(total / limit),
@@ -253,7 +243,6 @@ export class ShowsService {
           await queryRunner.manager.save(newImages);
         }
       }
-
       //show안에 있는 images요소 삭제
       delete show.images;
       // 공연 변경 사항 저장
@@ -262,12 +251,14 @@ export class ShowsService {
       // 트랜잭션 커밋
       await queryRunner.commitTransaction();
 
+      //Elasticsearch 인덱싱
+      await this.searchService.createShowIndex(show);
+
       return {
         status: HttpStatus.OK,
         message: SHOW_MESSAGES.UPDATE.SUCCEED,
       };
     } catch (error) {
-      console.log(error);
       // 트랜잭션 롤백
       await queryRunner.rollbackTransaction();
       throw new InternalServerErrorException(SHOW_MESSAGES.UPDATE.FAIL);
@@ -303,18 +294,38 @@ export class ShowsService {
       image.deletedAt = new Date();
     });
 
-    //DB에 저장
-    await this.scheduleRepository.save(show.schedules);
-    await this.imagesRepository.save(show.images);
-    await this.showRepository.save(show);
+    // 트랜잭션 연결 설정 초기화
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    //s3에서 이미지 삭제
-    await this.imagesService.rollbackS3Image(imageUrls);
+    try {
+      //DB에 저장
+      await queryRunner.manager.save(show.schedules);
+      await queryRunner.manager.save(show.images);
+      await queryRunner.manager.save(show);
 
-    return {
-      status: HttpStatus.OK,
-      message: SHOW_MESSAGES.DELETE.SUCCEED,
-    };
+      // 트랜잭션 커밋
+      await queryRunner.commitTransaction();
+
+      //s3에서 이미지 삭제
+      await this.imagesService.rollbackS3Image(imageUrls);
+
+      //Elasticsearch 인덱스 삭제
+      await this.searchService.deleteShowIndex(showId);
+
+      return {
+        status: HttpStatus.OK,
+        message: SHOW_MESSAGES.DELETE.SUCCEED,
+      };
+    } catch (error) {
+      // 트랜잭션 롤백
+      await queryRunner.rollbackTransaction();
+      throw new InternalServerErrorException(SHOW_MESSAGES.DELETE.FAIL);
+    } finally {
+      // DB 커넥션 해제
+      await queryRunner.release();
+    }
   }
 
   /*공연 찜하기 생성 */

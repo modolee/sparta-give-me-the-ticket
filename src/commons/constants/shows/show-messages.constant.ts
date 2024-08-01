@@ -18,7 +18,7 @@ export const SHOW_MESSAGES = {
     },
 
     RUNTIME: {
-      REQUIRED: '공연 소요시간을 입력해주세요.',
+      REQUIRED: '공연 소요 시간을 입력해주세요.',
     },
 
     LOCATION: {
@@ -30,7 +30,7 @@ export const SHOW_MESSAGES = {
     },
 
     TOTAL_SEAT: {
-      REQUIRED: '공연 총 좌석 수를 입력해주세요.',
+      REQUIRED: '공연 좌석 수를 입력해주세요.',
     },
 
     DATE: {
@@ -42,7 +42,7 @@ export const SHOW_MESSAGES = {
     },
 
     IMAGE: {
-      REQUIRED: '공연 포스터 주소를 입력해주세요.',
+      REQUIRED: '공연 이미지를 입력해주세요.',
     },
 
     NOT_FOUND: '공연이 존재하지 않습니다.',
@@ -52,10 +52,8 @@ export const SHOW_MESSAGES = {
     FAIL: '공연 생성에 실패했습니다.',
   },
   GET_LIST: {
-    SUCCEED: {
-      LIST: '공연 목록 조회에 성공했습니다.',
-      SEARCH: '공연 검색에 성공했습니다.',
-    },
+    SUCCEED: '공연 조회에 성공했습니다.',
+    FAIL: '공연 조회에 실패했습니다.',
   },
   GET: {
     SUCCEED: '공연 상세 조회에 성공했습니다.',
@@ -68,5 +66,9 @@ export const SHOW_MESSAGES = {
   },
   DELETE: {
     SUCCEED: '공연 삭제에 성공했습니다.',
+    FAIL: '공연 삭제에 실패했습니다.',
+  },
+  INDEX: {
+    FAIL: '공연 데이터 인덱싱에 실패했습니다.',
   },
 };
