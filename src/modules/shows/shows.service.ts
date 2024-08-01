@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   HttpException,
   HttpStatus,
   Injectable,
@@ -31,8 +32,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { ImagesService } from '../images/images.service';
 
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { TICKET_QUEUE } from 'src/commons/constants/queue.constant';
+import { QUEUES } from 'src/commons/constants/queue.constant';
 import { TicketQueueEvents } from 'src/queue-events/ticket.queue-event';
 
 @Injectable()
@@ -42,7 +42,7 @@ export class ShowsService {
     @InjectRepository(Bookmark) private bookmarkRepository: Repository<Bookmark>,
     @InjectRepository(Schedule) private scheduleRepository: Repository<Schedule>,
     @InjectRepository(Image) private imagesRepository: Repository<Image>,
-    @InjectQueue(TICKET_QUEUE) private ticketQueue: Queue,
+    @InjectQueue(QUEUES.TICKET_QUEUE) private ticketQueue: Queue,
     private readonly ticketQueueEvents: TicketQueueEvents,
     private dataSource: DataSource,
     private readonly imagesService: ImagesService
@@ -357,22 +357,21 @@ export class ShowsService {
     // 찜하기를 취소합니다. (hard delete)
     await this.bookmarkRepository.delete({ id: bookmarkId });
     return bookmark;
-
-    //remove 검색, delete는 id 값을 넘겨줘야한다.
   }
 
-  /* 티켓 예매 동시성 처리 */
+  /* 티켓 예매 동시성 처리, 큐에 작업 추가 */
 
   async addTicketQueue(showId: number, createTicketDto: CreateTicketDto, user: User) {
-    // 큐에 작업 추가
-
-    const job = await this.ticketQueue.add('ticket', { showId, user, createTicketDto });
+    const job = await this.ticketQueue.add(QUEUES.ADD_TICKET_QUEUE, {
+      showId,
+      user,
+      createTicketDto,
+    });
 
     // 작업 완료 대기 및 결과 반환
     const result = await job.waitUntilFinished(this.ticketQueueEvents.queueEvents);
-    console.log(result);
     if (!result) {
-      throw new InternalServerErrorException(SHOW_TICKET_MESSAGES.COMMON.TICKET.NOT_FOUND);
+      throw new NotFoundException(SHOW_TICKET_MESSAGES.COMMON.TICKET.NOT_FOUND);
     }
     return result;
   }
@@ -407,30 +406,29 @@ export class ShowsService {
 
       //지정 좌석이 있는지 확인합니다.
       if (schedule.remainSeat <= SHOW_TICKETS.COMMON.SEAT.UNSIGNED) {
-        throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.SEAT.NOT_ENOUGH);
+        throw new ConflictException(SHOW_TICKET_MESSAGES.COMMON.SEAT.NOT_ENOUGH);
       }
 
       //date와 time을 하나의 showTime으로 연결합니다.
       const showTime = `${String(schedule.date)}T${String(schedule.time)}.000Z`;
 
       // 공연 시간 기준 2시간 전
-      const twoHoursBeforeShowTime = subHours(showTime, 2);
+      const twoHoursBeforeShowTime = subHours(
+        showTime,
+        SHOW_TICKETS.COMMON.TICKET.HOURS.BEFORE_TWO_HOURS
+      );
       const nowTime = new Date();
       if (nowTime >= twoHoursBeforeShowTime) {
         throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.TIME.EXPIRED);
       }
 
       if (user.point < show.price) {
-        throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.POINT.NOT_ENOUGH);
+        throw new ForbiddenException(SHOW_TICKET_MESSAGES.COMMON.POINT.NOT_ENOUGH);
       }
 
       // 사용자의 포인트 차감
       user.point -= show.price;
       await queryRunner.manager.save(User, user);
-
-      if (schedule.remainSeat <= SHOW_TICKETS.COMMON.SEAT.UNSIGNED) {
-        throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.SEAT.NOT_ENOUGH);
-      }
 
       const ticket = queryRunner.manager.create(Ticket, {
         userId: user.id,
@@ -509,13 +507,9 @@ export class ShowsService {
       // 환불 정책에 따른 비율 계산
       let refundPoint = 0;
 
-      console.log(nowTime);
-      console.log(showTime);
-      console.log(oneHoursBeforeShowTime);
-
       // 공연 시간이 현재 시간 기준으로 1시간 이전일 경우 환불하기 어렵다는 메시지 전달
       if (nowTime >= oneHoursBeforeShowTime) {
-        throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.REFUND.EXPIRED);
+        throw new ConflictException(SHOW_TICKET_MESSAGES.COMMON.REFUND.EXPIRED);
       }
 
       // 공연 시작 10일 전까지(마지노선) 전액 환불
@@ -540,7 +534,7 @@ export class ShowsService {
 
       // 티켓의 환불이 이미 됐을경우 메시지를 날립니다.
       if (ticket.status == SHOW_TICKETS.COMMON.TICKET.REFUND_STATUS) {
-        throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.REFUND.ALREADY_REFUNDED);
+        throw new ConflictException(SHOW_TICKET_MESSAGES.COMMON.REFUND.ALREADY_REFUNDED);
       }
 
       // 티켓 상태를 환불로 업데이트를 합니다.

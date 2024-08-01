@@ -16,6 +16,7 @@ export const SHOW_TICKETS = {
         BEFORE_THREE_DAYS: 3,
         BEFORE_TEN_DAYS: 10,
         AFTER_TWENTY_FOUR_HOURS: 24,
+        BEFORE_TWO_HOURS: 2,
       },
       PRICE: {
         ONE_HOURS: 1,

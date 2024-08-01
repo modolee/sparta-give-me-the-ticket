@@ -1,8 +1,9 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { ShowsService } from './shows.service';
+import { QUEUES } from 'src/commons/constants/queue.constant';
 
-@Processor('ticketQueue')
+@Processor(QUEUES.TICKET_QUEUE)
 export class QueueConsumer extends WorkerHost {
   constructor(private readonly showsService: ShowsService) {
     super();

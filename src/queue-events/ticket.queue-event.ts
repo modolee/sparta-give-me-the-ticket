@@ -1,5 +1,10 @@
 import { QueueEventsHost, QueueEventsListener } from '@nestjs/bullmq';
-import { TICKET_QUEUE } from 'src/commons/constants/queue.constant';
+import { QUEUES } from 'src/commons/constants/queue.constant';
 
-@QueueEventsListener(TICKET_QUEUE)
-export class TicketQueueEvents extends QueueEventsHost {}
+//대기시간 설정
+@QueueEventsListener(QUEUES.TICKET_QUEUE)
+export class TicketQueueEvents extends QueueEventsHost {
+  async handleQueueActive(job: any): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, job.data.seconds * 1000));
+  }
+}

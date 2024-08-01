@@ -1,12 +1,12 @@
-import { Processor, Process } from '@nestjs/bull';
-import { Job } from 'bull';
+import { Processor } from '@nestjs/bullmq';
+import { Job } from 'bullmq';
 import { DataSource } from 'typeorm';
 import { Ticket } from 'src/entities/shows/ticket.entity';
 
-@Processor('ticketQueue')
+@Processor('tradeQueue')
 export class TicketProcessor {
   constructor(private dataSource: DataSource) {}
 
-  @Process('reserveTicket')
-  async handlerReserveTicket(job: Job<{ userId: number; ticketId: number }>) {}
+  //   @Process('reserveTicket')
+  //   async handlerReserveTicket(job: Job<{ userId: number; ticketId: number }>) {}
 }
