@@ -49,4 +49,7 @@ export const MESSAGES = {
   REDIS: {
     SUCCESSFULLY_CONNECT: 'Redis connected successfully',
   },
+  QUEUE: {
+    TICKET_QUEUE: 'ticketQueue',
+  },
 };
