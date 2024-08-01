@@ -1,0 +1,22 @@
+header {
+    height: 80px;
+}
+
+.navbar-expand-lg {
+    height: 100%;
+    background-color: #e3f2fd;
+    padding-left: 10%;
+    padding-right: 10%;
+}
+
+.justify-content-end {
+    width: 200px;
+}
+
+.nav-item>a {
+    color: gray;
+}
+
+.nav {
+    --bs-nav-link-hover-color: var(--bs-navbar-hover-color)
+}
