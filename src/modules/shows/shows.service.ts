@@ -251,6 +251,9 @@ export class ShowsService {
       // 트랜잭션 커밋
       await queryRunner.commitTransaction();
 
+      //Elasticsearch 인덱싱
+      await this.searchService.createShowIndex(show);
+
       return {
         status: HttpStatus.OK,
         message: SHOW_MESSAGES.UPDATE.SUCCEED,

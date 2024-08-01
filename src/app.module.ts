@@ -13,7 +13,6 @@ import { ImagesModule } from './modules/images/images.module';
 import { RedisModule } from './modules/redis/redis.module';
 import { BullModule } from '@nestjs/bullmq';
 import { SearchModule } from './modules/shows/search/search.module';
-import { IndexingService } from './modules/shows/search/indexing.service';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -42,6 +41,6 @@ import { IndexingService } from './modules/shows/search/indexing.service';
     SearchModule,
   ],
   controllers: [AppController],
-  providers: [AppService, IndexingService],
+  providers: [AppService],
 })
 export class AppModule {}

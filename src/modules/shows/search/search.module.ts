@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Show } from 'src/entities/shows/show.entity';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { Show } from 'src/entities/shows/show.entity';
       inject: [ConfigService],
     }),
     TypeOrmModule.forFeature([Show]),
+    ScheduleModule.forRoot(),
   ],
   providers: [SearchService],
   exports: [SearchService],
