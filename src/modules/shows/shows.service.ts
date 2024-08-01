@@ -132,17 +132,6 @@ export class ShowsService {
   /*공연 목록 조회 */
   async getShowList(getShowListDto: GetShowListDto) {
     const { category, search, page, limit } = getShowListDto;
-
-    // const [shows, total] = await this.showRepository.findAndCount({
-    //   where: {
-    //     ...(category && { category }),
-    //     ...(search && { title: Like(`%${search}%`) }),
-    //     //도커 또는 aws 클러스터 하나 만들어서 서버 띄우기
-    //   },
-    //   skip: (page - 1) * limit,
-    //   take: limit,
-    // });
-
     const { results, total } = await this.searchService.searchShows(category, search, page, limit);
 
     return {

@@ -21,6 +21,7 @@ import { Show } from 'src/entities/shows/show.entity';
       }),
       inject: [ConfigService],
     }),
+    TypeOrmModule.forFeature([Show]),
   ],
   providers: [SearchService],
   exports: [SearchService],

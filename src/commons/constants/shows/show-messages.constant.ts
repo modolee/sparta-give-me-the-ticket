@@ -68,4 +68,7 @@ export const SHOW_MESSAGES = {
     SUCCEED: '공연 삭제에 성공했습니다.',
     FAIL: '공연 삭제에 실패했습니다.',
   },
+  INDEX: {
+    FAIL: '공연 데이터 인덱싱에 실패했습니다.',
+  },
 };
