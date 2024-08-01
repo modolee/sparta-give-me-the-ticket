@@ -19,7 +19,6 @@ import { Factory } from 'nestjs-seeder';
 
 @Entity({ name: 'shows' })
 export class Show {
-  @Factory((faker) => faker.number.int({ min: 1, max: 20 }))
   @PrimaryGeneratedColumn({ unsigned: true })
   id: number;
 
