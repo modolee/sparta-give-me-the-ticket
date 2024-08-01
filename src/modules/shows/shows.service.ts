@@ -1,7 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
-  HttpException,
+  ForbiddenException,
   HttpStatus,
   Injectable,
   InternalServerErrorException,
@@ -27,20 +27,20 @@ import { SHOW_TICKET_MESSAGES } from 'src/commons/constants/shows/show-ticket-me
 import { USER_BOOKMARK_MESSAGES } from 'src/commons/constants/users/user-bookmark-messages.constant';
 import { ImagesService } from '../images/images.service';
 import { SearchService } from './search/search.service';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { addHours, startOfDay, subDays, subHours } from 'date-fns';
-import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { QUEUES } from 'src/commons/constants/queue.constant';
+import { TicketQueueEvents } from 'src/queue-events/ticket.queue-event';
 @Injectable()
 export class ShowsService {
   constructor(
     @InjectRepository(Show) private showRepository: Repository<Show>,
     @InjectRepository(Bookmark) private bookmarkRepository: Repository<Bookmark>,
-    @InjectRepository(Schedule) private scheduleRepository: Repository<Schedule>,
     @InjectRepository(Image) private imagesRepository: Repository<Image>,
-    @InjectQueue('ticketQueue') private ticketQueue: Queue,
+    @InjectQueue(QUEUES.TICKET_QUEUE) private ticketQueue: Queue,
+    private readonly ticketQueueEvents: TicketQueueEvents,
     private dataSource: DataSource,
-    private eventEmitter: EventEmitter2,
     private readonly imagesService: ImagesService,
     private readonly searchService: SearchService
   ) {}
@@ -254,7 +254,6 @@ export class ShowsService {
           await queryRunner.manager.save(newImages);
         }
       }
-
       //show안에 있는 images요소 삭제
       delete show.images;
       // 공연 변경 사항 저장
@@ -377,64 +376,27 @@ export class ShowsService {
     // 찜하기를 취소합니다. (hard delete)
     await this.bookmarkRepository.delete({ id: bookmarkId });
     return bookmark;
-
-    //remove 검색, delete는 id 값을 넘겨줘야한다.
   }
 
-  /* 티켓 예매 동시성 처리 */
+  /* 티켓 예매 동시성 처리, 큐에 작업 추가 */
+
   async addTicketQueue(showId: number, createTicketDto: CreateTicketDto, user: User) {
-    const eventName = `finishJoin-${user.nickname}-${Math.floor(Math.random() * 89999) + 1}`;
-    await this.ticketQueue.add(
-      'ticket',
-      { eventName, showId, user, createTicketDto },
-      // 큐에서 작업을 실행 한 후 redis에 남아있지 않게 하는 옵션
-      {
-        removeOnComplete: true,
-        removeOnFail: true,
-      }
-    );
-    return this.waitFinish(eventName, 2);
-  }
-
-  //티켓 예매, 동시성 처리 메소드를 연결해주는 로직
-  private waitFinish(eventName: string, sec: number) {
-    return new Promise((resolve, reject) => {
-      const wait = setTimeout(() => {
-        this.eventEmitter.removeAllListeners(eventName);
-        resolve({
-          message: '대기중입니다.',
-        });
-      }, sec * 1000);
-      console.log(eventName);
-      const listenFn = ({
-        success,
-        exception,
-      }: {
-        success: boolean;
-        exception?: HttpException;
-      }) => {
-        clearTimeout(wait);
-        console.log(`Event received: ${eventName}, success: ${success}`);
-        this.eventEmitter.removeAllListeners(eventName);
-        //티켓 예매 성공할 때 받는 응답
-        success
-          ? resolve({
-              httpstatus: HttpStatus.CREATED,
-              message: SHOW_TICKET_MESSAGES.COMMON.TICKET.SUCCESS,
-            })
-          : reject(exception);
-      };
-      this.eventEmitter.addListener(eventName, listenFn);
+    const job = await this.ticketQueue.add(QUEUES.ADD_TICKET_QUEUE, {
+      showId,
+      user,
+      createTicketDto,
     });
+
+    // 작업 완료 대기 및 결과 반환
+    const result = await job.waitUntilFinished(this.ticketQueueEvents.queueEvents);
+    if (!result) {
+      throw new NotFoundException(SHOW_TICKET_MESSAGES.COMMON.TICKET.NOT_FOUND);
+    }
+    return result;
   }
 
   /* 티켓 예매 */
-  async createTicket(
-    showId: number,
-    createTicketDto: CreateTicketDto,
-    user: User,
-    eventName: string
-  ) {
+  async createTicket(showId: number, createTicketDto: CreateTicketDto, user: User) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -460,32 +422,32 @@ export class ShowsService {
       if (!schedule) {
         throw new NotFoundException(SHOW_TICKET_MESSAGES.COMMON.SCHEDULE.NOT_FOUND);
       }
+
       //지정 좌석이 있는지 확인합니다.
       if (schedule.remainSeat <= SHOW_TICKETS.COMMON.SEAT.UNSIGNED) {
-        throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.SEAT.NOT_ENOUGH);
+        throw new ConflictException(SHOW_TICKET_MESSAGES.COMMON.SEAT.NOT_ENOUGH);
       }
 
       //date와 time을 하나의 showTime으로 연결합니다.
       const showTime = `${String(schedule.date)}T${String(schedule.time)}.000Z`;
 
       // 공연 시간 기준 2시간 전
-      const twoHoursBeforeShowTime = subHours(showTime, 2);
+      const twoHoursBeforeShowTime = subHours(
+        showTime,
+        SHOW_TICKETS.COMMON.TICKET.HOURS.BEFORE_TWO_HOURS
+      );
       const nowTime = new Date();
       if (nowTime >= twoHoursBeforeShowTime) {
         throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.TIME.EXPIRED);
       }
 
       if (user.point < show.price) {
-        throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.POINT.NOT_ENOUGH);
+        throw new ForbiddenException(SHOW_TICKET_MESSAGES.COMMON.POINT.NOT_ENOUGH);
       }
 
       // 사용자의 포인트 차감
       user.point -= show.price;
       await queryRunner.manager.save(User, user);
-
-      if (schedule.remainSeat <= SHOW_TICKETS.COMMON.SEAT.UNSIGNED) {
-        throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.SEAT.NOT_ENOUGH);
-      }
 
       const ticket = queryRunner.manager.create(Ticket, {
         userId: user.id,
@@ -507,14 +469,13 @@ export class ShowsService {
 
       await queryRunner.manager.save(Schedule, schedule);
       await queryRunner.commitTransaction();
-
+      await queryRunner.release();
+      return ticket;
       //각각 성공, 실패 여부를 return 합니다.
-      return this.eventEmitter.emit(eventName, { success: true });
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      return this.eventEmitter.emit(eventName, { success: false, exception: error });
-    } finally {
       await queryRunner.release();
+      throw error;
     }
   }
 
@@ -536,7 +497,7 @@ export class ShowsService {
         throw new NotFoundException(SHOW_TICKET_MESSAGES.COMMON.TICKET.NOT_FOUND);
       }
 
-      const showTime = `${String(ticket.date)}T${String(ticket.time)}.000Z`;
+      const showTime = `${String(ticket.date)}T${String(ticket.time)}.000+09:00`;
 
       // 현재의 시간에서 1시간 전으로 시간 제한을 설정
       const oneHoursBeforeShowTime = subHours(
@@ -562,11 +523,11 @@ export class ShowsService {
       const earlyTime = startOfDay(showTime);
 
       // 환불 정책에 따른 비율 계산
-      let refundPoint;
+      let refundPoint = 0;
 
       // 공연 시간이 현재 시간 기준으로 1시간 이전일 경우 환불하기 어렵다는 메시지 전달
       if (nowTime >= oneHoursBeforeShowTime) {
-        throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.REFUND.EXPIRED);
+        throw new ConflictException(SHOW_TICKET_MESSAGES.COMMON.REFUND.EXPIRED);
       }
 
       // 공연 시작 10일 전까지(마지노선) 전액 환불
@@ -591,7 +552,7 @@ export class ShowsService {
 
       // 티켓의 환불이 이미 됐을경우 메시지를 날립니다.
       if (ticket.status == SHOW_TICKETS.COMMON.TICKET.REFUND_STATUS) {
-        throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.REFUND.ALREADY_REFUNDED);
+        throw new ConflictException(SHOW_TICKET_MESSAGES.COMMON.REFUND.ALREADY_REFUNDED);
       }
 
       // 티켓 상태를 환불로 업데이트를 합니다.

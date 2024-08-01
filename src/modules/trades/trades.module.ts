@@ -3,7 +3,7 @@ import { TradesService } from './trades.service';
 import { TradesController } from './trades.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { BullModule } from '@nestjs/bull';
+import { BullModule } from '@nestjs/bullmq';
 
 //entities
 import { Trade } from '../../entities/trades/trade.entity';
@@ -17,7 +17,7 @@ import { User } from 'src/entities/users/user.entity';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     BullModule.registerQueue({
-      name: 'ticketQueue',
+      name: 'tradeQueue',
     }),
     TypeOrmModule.forFeature([Trade, TradeLog, Show, Schedule, Ticket, User, TradeLog]),
   ],

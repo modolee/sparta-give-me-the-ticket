@@ -17,8 +17,8 @@ import { Redis } from 'ioredis';
 import { Inject } from '@nestjs/common';
 import { SERVER } from '../../commons/constants/server.constants';
 import { MESSAGES } from 'src/commons/constants/trades/messages';
-import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 //types
 import { Role } from 'src/commons/types/users/user-role.type';
@@ -232,13 +232,13 @@ export class TradesService {
 
     if (trade[0]) return { message: MESSAGES.TRADES.ALREADY_EXISTS.IN_TRADE_TICKET };
 
-    //해당 티켓이 사용 가능한지 검증 (레디스 검증)
+    //해당 티켓이 사용 가능한지 검증 (레디스 검증과 티켓의 날짜와 시간에 따른 검증)
     if (
       !(await this.redisClient.get(String(ticketId))) &&
       new Date().getTime() >=
         this.combineDateAndTime(String(date), time).getTime() - 60 * 1000 * 60 * 2
     )
-      throw new BadRequestException('해당 티켓은 환불도 거래도 불가능합니다!');
+      throw new BadRequestException(MESSAGES.TRADES.IS_EXPIRED.TICKET);
 
     //가격이 기존의 티켓 가격보다 같거나 낮은지 검증
     if (ticket.price < price) {
@@ -249,17 +249,45 @@ export class TradesService {
 
     //본인의 티켓인지 검증
     if (ticket.userId !== sellerId) {
-      return new BadRequestException(MESSAGES.TRADES.NOT_EXISTS.authority);
+      return new BadRequestException(MESSAGES.TRADES.NOT_EXISTS.AUTHORITY);
     }
 
     //검증 타일 END==================================================
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    //정책에 따라 티켓의 가격을 중고거래 게시된 시점의 가격으로 고정
-    await this.TicketRepository.update({ id: ticketId }, { price: price });
+    try {
+      //정책에 따라 티켓의 가격을 중고거래 게시된 시점의 가격으로 고정
+      await queryRunner.manager.update(Ticket, { id: ticketId }, { price: price });
 
-    const closedAt = await this.returnCloseTime(ticket.id);
+      const closedAt = await this.returnCloseTime(ticket.id);
+      const trade = await queryRunner.manager.save(Trade, {
+        sellerId,
+        ticketId,
+        showId,
+        price,
+        closedAt,
+      });
 
-    return await this.TradeRepository.save({ sellerId, ticketId, showId, price, closedAt });
+      //트레이드 로그에 기록
+      const log = { tradeId: trade.id, sellerId };
+      await queryRunner.manager.save(TradeLog, log);
+
+      await queryRunner.commitTransaction();
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      return { message: MESSAGES.TRADES.CAN_NOT_CREATE.TRADE };
+    } finally {
+      queryRunner.release();
+    }
+
+    // const closedAt = await this.returnCloseTime(ticket.id);
+    // return await this.TradeRepository.save({ sellerId, ticketId, showId, price, closedAt });
+
+    // //정책에 따라 티켓의 가격을 중고거래 게시된 시점의 가격으로 고정
+    // await this.TicketRepository.update({ id: ticketId }, { price: price });
+    // const closedAt = await this.returnCloseTime(ticket.id);
 
     // return { sellerId, ticketId, showId, price, closedAt };
   }
@@ -272,7 +300,7 @@ export class TradesService {
     if (!trade) throw new NotFoundException(MESSAGES.TRADES.NOT_EXISTS.TRADE);
 
     if (trade.sellerId !== userId)
-      throw new BadRequestException(MESSAGES.TRADES.NOT_EXISTS.authority);
+      throw new BadRequestException(MESSAGES.TRADES.NOT_EXISTS.AUTHORITY);
 
     //티켓과 중고거래의 가격 둘다 변경(어차피 참고하는 것은 티켓의 가격뿐이기에, 추후 수정 예정, 엔티티에서 중고거래의 가격은 사라져도 될것으로 보임)
     await this.TradeRepository.update({ id: tradeId }, { price: price });
@@ -288,7 +316,7 @@ export class TradesService {
     if (!trade) throw new NotFoundException(MESSAGES.TRADES.NOT_EXISTS.TRADE);
 
     if (trade.sellerId !== userId) {
-      throw new BadRequestException(MESSAGES.TRADES.NOT_EXISTS.authority);
+      throw new BadRequestException(MESSAGES.TRADES.NOT_EXISTS.AUTHORITY);
     }
 
     //모든 검증이 끝난 뒤 삭제 로직
@@ -333,6 +361,10 @@ export class TradesService {
       buyer.point -= ticket.price;
       await queryRunner.manager.save(User, buyer);
 
+      //tradeLog데이타베이스에도 저장
+      const log = { tradeId: tradeId, buyerId, sellerId: seller.id };
+      await queryRunner.manager.save(TradeLog);
+
       //구매자에게 전할 새로운 티켓을 생성하고 새로운 티켓을 데이터베이스에 저장
       const newTicket = ticket;
       newTicket.userId = buyerId;
@@ -371,7 +403,7 @@ export class TradesService {
     // 병합된 배열을 id 기준으로 정렬
     logs.sort((a, b) => a.id - b.id);
 
-    if (!logs[0]) return { message: '중고거래 로그가 존재하지 않습니다!' };
+    if (!logs[0]) return { message: MESSAGES.TRADES.NOT_EXISTS.TRADE_LOG };
     else return logs;
   }
 
