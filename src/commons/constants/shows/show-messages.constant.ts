@@ -18,7 +18,7 @@ export const SHOW_MESSAGES = {
     },
 
     RUNTIME: {
-      REQUIRED: '공연 소요시간을 입력해주세요.',
+      REQUIRED: '공연 소요 시간을 입력해주세요.',
     },
 
     LOCATION: {
@@ -30,7 +30,7 @@ export const SHOW_MESSAGES = {
     },
 
     TOTAL_SEAT: {
-      REQUIRED: '공연 총 좌석 수를 입력해주세요.',
+      REQUIRED: '공연 좌석 수를 입력해주세요.',
     },
 
     DATE: {
@@ -42,7 +42,7 @@ export const SHOW_MESSAGES = {
     },
 
     IMAGE: {
-      REQUIRED: '공연 포스터 주소를 입력해주세요.',
+      REQUIRED: '공연 이미지를 입력해주세요.',
     },
 
     NOT_FOUND: '공연이 존재하지 않습니다.',
@@ -68,5 +68,6 @@ export const SHOW_MESSAGES = {
   },
   DELETE: {
     SUCCEED: '공연 삭제에 성공했습니다.',
+    FAIL: '공연 삭제에 실패했습니다.',
   },
 };

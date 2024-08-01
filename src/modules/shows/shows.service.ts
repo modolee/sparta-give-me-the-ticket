@@ -26,8 +26,8 @@ import { SHOW_TICKETS } from 'src/commons/constants/shows/show-tickets.constant'
 import { SHOW_TICKET_MESSAGES } from 'src/commons/constants/shows/show-ticket-messages.constant';
 import { USER_BOOKMARK_MESSAGES } from 'src/commons/constants/users/user-bookmark-messages.constant';
 import { ImagesService } from '../images/images.service';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { SearchService } from './search/search.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { addHours, startOfDay, subDays, subHours } from 'date-fns';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
@@ -40,9 +40,9 @@ export class ShowsService {
     @InjectRepository(Image) private imagesRepository: Repository<Image>,
     @InjectQueue('ticketQueue') private ticketQueue: Queue,
     private dataSource: DataSource,
+    private eventEmitter: EventEmitter2,
     private readonly imagesService: ImagesService,
-    private readonly searchService: SearchService,
-    private eventEmitter: EventEmitter2
+    private readonly searchService: SearchService
   ) {}
 
   /*공연 생성 */
@@ -91,6 +91,9 @@ export class ShowsService {
       //트랜잭션 커밋
       await queryRunner.commitTransaction();
 
+      //Elasticsearch 인덱싱
+      await this.searchService.creatShowIndex(show, images);
+
       return {
         status: HttpStatus.CREATED,
         message: SHOW_MESSAGES.CREATE.SUCCEED,
@@ -112,7 +115,6 @@ export class ShowsService {
           imageUrl: images.map(({ imageUrl }) => imageUrl),
           createdAt: show.createdAt,
           updatedAt: show.updatedAt,
-          deletedAt: show.deletedAt,
         },
       };
     } catch (error) {
@@ -131,28 +133,25 @@ export class ShowsService {
   async getShowList(getShowListDto: GetShowListDto) {
     const { category, search, page, limit } = getShowListDto;
 
-    const [shows, total] = await this.showRepository.findAndCount({
-      where: {
-        ...(category && { category }),
-        ...(search && { title: Like(`%${search}%`) }),
-        //도커 또는 aws 클러스터 하나 만들어서 서버 띄우기
-      },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
+    // const [shows, total] = await this.showRepository.findAndCount({
+    //   where: {
+    //     ...(category && { category }),
+    //     ...(search && { title: Like(`%${search}%`) }),
+    //     //도커 또는 aws 클러스터 하나 만들어서 서버 띄우기
+    //   },
+    //   skip: (page - 1) * limit,
+    //   take: limit,
+    // });
 
-    //async getShowList({ category, search }: GetShowListDto) {
-    // searchService 사용해 검색
-    //const { results, total } = await this.searchService.searchShows(category, search);
+    const { results, total } = await this.searchService.searchShows(category, search, page, limit);
 
     return {
       status: HttpStatus.OK,
       message: SHOW_MESSAGES.GET_LIST.SUCCEED.LIST,
-      data: shows,
+      data: results,
       total,
       page,
       totalPages: Math.ceil(total / limit),
-      //data: results,
     };
   }
 
@@ -304,18 +303,38 @@ export class ShowsService {
       image.deletedAt = new Date();
     });
 
-    //DB에 저장
-    await this.scheduleRepository.save(show.schedules);
-    await this.imagesRepository.save(show.images);
-    await this.showRepository.save(show);
+    // 트랜잭션 연결 설정 초기화
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    //s3에서 이미지 삭제
-    await this.imagesService.rollbackS3Image(imageUrls);
+    try {
+      //DB에 저장
+      await queryRunner.manager.save(show.schedules);
+      await queryRunner.manager.save(show.images);
+      await queryRunner.manager.save(show);
 
-    return {
-      status: HttpStatus.OK,
-      message: SHOW_MESSAGES.DELETE.SUCCEED,
-    };
+      // 트랜잭션 커밋
+      await queryRunner.commitTransaction();
+
+      //s3에서 이미지 삭제
+      await this.imagesService.rollbackS3Image(imageUrls);
+
+      //Elasticsearch 인덱스 삭제
+      await this.searchService.deleteShowIndex(showId);
+
+      return {
+        status: HttpStatus.OK,
+        message: SHOW_MESSAGES.DELETE.SUCCEED,
+      };
+    } catch (error) {
+      // 트랜잭션 롤백
+      await queryRunner.rollbackTransaction();
+      throw new InternalServerErrorException(SHOW_MESSAGES.DELETE.FAIL);
+    } finally {
+      // DB 커넥션 해제
+      await queryRunner.release();
+    }
   }
 
   /*공연 찜하기 생성 */
