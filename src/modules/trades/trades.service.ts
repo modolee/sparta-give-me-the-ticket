@@ -297,15 +297,7 @@ export class TradesService {
     } finally {
       queryRunner.release();
     }
-
-    // const closedAt = await this.returnCloseTime(ticket.id);
-    // return await this.TradeRepository.save({ sellerId, ticketId, showId, price, closedAt });
-
-    // //정책에 따라 티켓의 가격을 중고거래 게시된 시점의 가격으로 고정
-    // await this.TicketRepository.update({ id: ticketId }, { price: price });
-    // const closedAt = await this.returnCloseTime(ticket.id);
-
-    // return { sellerId, ticketId, showId, price, closedAt };
+    return { message: MESSAGES.TRADES.SUCCESSFULLY_CREATE.TRADE };
   }
 
   //<4> 중고 거래 수정 메서드 //완료(검증 대부분 완료)  //테스트 완료
@@ -358,6 +350,7 @@ export class TradesService {
     const buyer = await this.UserRepository.findOne({ where: { id: buyerId } });
     if (!buyer) throw new NotFoundException(MESSAGES.TRADES.NOT_EXISTS.BUYER);
 
+    if (seller.id === buyer.id) throw new BadRequestException('구매자와 판매자가 동일합니다!');
     //현재 가장 높은 ticketId보다 1 높은 값 (새로 재발급 하기 위해서)
     let query = await this.TicketRepository.query('SELECT MAX(id) AS maxId FROM tickets');
     const newId = query[0].maxId + 1;
@@ -368,9 +361,6 @@ export class TradesService {
     await queryRunner.startTransaction();
 
     try {
-      //새로운 티켓 id를 레디스에 저장
-      this.addRedisTicket(String(newId), trade.closedAt);
-
       //검증 타일===================
       if (buyer.point < ticket.price)
         throw new BadRequestException(MESSAGES.TRADES.NOT_ENOUGH.MONEY);
@@ -386,6 +376,9 @@ export class TradesService {
       newTicket.userId = buyerId;
       newTicket.nickname = buyer.nickname;
 
+      //새로운 티켓 id를 레디스에 저장
+      this.addRedisTicket(String(newId), trade.closedAt);
+      //새로운 티켓 정보를 데이터베이스에 저장
       await queryRunner.manager.save(Ticket, newTicket);
 
       await queryRunner.commitTransaction();
@@ -424,8 +417,8 @@ export class TradesService {
   }
 
   //=======================테스트 함수 START====================
-  async hello(a: number) {
-    return { message: 'hello' };
+  async hello(userId: number) {
+    return await this.UserRepository.findOne({ where: { id: userId } });
   }
 
   async test() {

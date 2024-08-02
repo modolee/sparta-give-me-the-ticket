@@ -2,6 +2,8 @@ export const MESSAGES = {
   TRADES: {
     IS_EXPIRED: { TICKET: '해당 티켓은 만료되었습니다.' },
     NOT_INPUT: { TICKET_ID: '티켓의 ID를 입력해주십시오.', PRICE: '가격을 입력해주십시오' },
+    EQUAL: { BUYER_AND_SELLER: '구매자와 판매자가 동일합니다!' },
+    NOT_EQUAL: {},
     NOT_EXISTS: {
       AUTHORITY: '권한이 없거나 해당 게시물의 작성자가 아닙니다',
       TRADE_LIST: '중고거래 목록이 존재하지 않습니다',
@@ -22,6 +24,7 @@ export const MESSAGES = {
     NOT_TYPE: { NUMBER: '숫자를 입력해 주십시오', STRING: '문장을 입력해주십시오' },
     SUCCESSFULLY_CREATE: {
       TICKET: '성공적으로 티켓이 발급되었습니다.',
+      TRADE: '성공적으로 거래가 생성되었습니다.',
     },
     SUCCESSFULLY_UPDATE: {
       CHANGE_ROLE_ADMIN: '성공적으로 관리자로 권한이 변경되었습니다.',

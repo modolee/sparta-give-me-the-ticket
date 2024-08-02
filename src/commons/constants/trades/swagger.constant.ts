@@ -4,8 +4,9 @@ export const SWAGGER = {
     TRADES_API_TAGS: '중고거래',
     HELLO: {
       API_OPERATION: {
-        SUMMARY: '실행체크 API',
-        DESCRIPTION: '간단한 기능을 확인합니다. 내부함수가 숫자를 인수로 받습니다.',
+        SUMMARY: '유저 정보 확인 API',
+        DESCRIPTION:
+          '간단한 기능을 확인합니다. 내부함수가 숫자를 인수로 받습니다. 현재는 유저 정보 확인 API로 쓰입니다',
       },
     },
     TEST: {
