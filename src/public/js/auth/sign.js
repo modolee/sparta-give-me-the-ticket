@@ -90,8 +90,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 로그인 API에게 보낼 사용자 입력 DTO 객체
     const signInDto = {
-      schedule: Number(document.getElementById('scheduleId').value),
-      showId: Number(document.getElementById('showId').value),
+      email: document.getElementById('email').value,
+      password: document.getElementById('password').value,
     };
 
     try {
