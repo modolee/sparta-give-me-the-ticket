@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Redirect, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignUpDto } from './dto/sign-up.dto';
 import { SignInDto } from './dto/sign-in.dto';
@@ -40,9 +40,10 @@ export class AuthController {
   @UseGuards(KakaoAuthGuard)
   @Get('/kakao')
   async kakaoSignIn(@Req() req: any, @Res() res: any) {
-    console.log('controller : ', req.user);
     const { accessToken, refreshToken } = await this.authService.signIn(req.user);
-    return res.send({ accessToken, refreshToken });
+    res.redirect(
+      `http://localhost:3000/views/auth/kakao/process?accessToken=${accessToken}&refreshToken=${refreshToken}`
+    );
   }
 
   /**
