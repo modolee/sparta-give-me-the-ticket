@@ -407,6 +407,11 @@ export class TradesService {
       //티켓 변경 로직 END========================
 
       //거래 삭제
+      await queryRunner.manager.update(
+        Ticket,
+        { id: trade.ticketId },
+        { status: TicketStatus.USEABLE }
+      );
       await queryRunner.manager.delete(Trade, tradeId);
 
       await queryRunner.commitTransaction();
