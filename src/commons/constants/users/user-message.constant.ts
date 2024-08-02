@@ -8,6 +8,10 @@ export const USER_MESSAGES = {
       },
     },
     USERINFO: {
+      GET_PROFILE: {
+        SUCCESS: '사용자 프로필 조회에 성공했습니다.',
+        FAILURE: '사용자 프로필 조회에 실패했습니다.',
+      },
       UPDATE: {
         SUCCESS: '사용자 정보 수정에 성공했습니다.',
         FAILURE: {

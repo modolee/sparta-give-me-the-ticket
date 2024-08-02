@@ -76,7 +76,11 @@ export class UsersController {
     };
   }
 
-  // 거래 내역 조회
+  /**
+   * 거래 내역 조회
+   * @param req
+   * @returns
+   */
   @Get('/me/trade')
   async getTradeLog(@Req() req: any) {
     const getTradeLog = await this.userService.getTradeLog(req.user.id);
@@ -85,6 +89,22 @@ export class UsersController {
       statusCode: HttpStatus.OK,
       message: USER_MESSAGES.USER.TRADE.GET_LOG.SUCCESS,
       getTradeLog,
+    };
+  }
+
+  /**
+   * 사용자 프로필 조회
+   * @param req
+   * @returns
+   */
+  @Get('/me')
+  async getUserProfile(@Req() req: any) {
+    const getUserProfile = await this.userService.getUserProfile(req.user);
+
+    return {
+      statusCode: HttpStatus.OK,
+      message: USER_MESSAGES.USER.USERINFO.GET_PROFILE.SUCCESS,
+      getUserProfile,
     };
   }
 
