@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const hiddenInputPw = document.querySelector('#repeat__password');
   const signInBtn = document.querySelector('.signin__btn');
   const signUpBtn = document.querySelector('.signup__btn');
+  const kakaoSignInBtn = document.querySelector('.kakao__btn');
 
   // 이미 로그인 했는지 확인
   if (window.localStorage.getItem('accessToken')) {
@@ -110,6 +111,12 @@ document.addEventListener('DOMContentLoaded', function () {
       const errorMessage = err.response.data.message;
       alert(errorMessage);
     }
+  });
+
+  //----------- kakao sign in ---------------------
+  kakaoSignInBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    window.location.href = '/auth/kakao';
   });
 
   //----------- reset ---------------------
