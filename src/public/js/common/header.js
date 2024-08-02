@@ -23,3 +23,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     signAfter.style.display = 'none';
   }
 });
+
+// 브라우저 닫을 때 토큰 초기화
+document.addEventListener('unload', () => {
+  window.localStorage.clear();
+});
