@@ -1,8 +1,8 @@
-import { MiddlewareConsumer, Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 import { configModuleValidationSchema } from 'src/configs/env-validation.config';
 import { typeOrmModuleOptions } from 'src/configs/database.config';
 import { AuthModule } from './modules/auth/auth.module';
@@ -12,7 +12,9 @@ import { TradesModule } from './modules/trades/trades.module';
 import { ImagesModule } from './modules/images/images.module';
 import { RedisModule } from './modules/redis/redis.module';
 import { BullModule } from '@nestjs/bullmq';
-
+import { SearchModule } from './modules/shows/search/search.module';
+import { ViewsController } from './views/index.view.controller';
+import { AuthViewsController } from './views/auth/auth.view.controller';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -38,8 +40,9 @@ import { BullModule } from '@nestjs/bullmq';
     TradesModule,
     ImagesModule,
     RedisModule,
+    SearchModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, ViewsController, AuthViewsController],
   providers: [AppService],
 })
 export class AppModule {}
