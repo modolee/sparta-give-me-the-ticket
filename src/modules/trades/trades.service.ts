@@ -227,9 +227,9 @@ export class TradesService {
 
     //1-1 티켓이 존재하는지 검증
     const ticket = await this.TicketRepository.findOne({ where: { id: ticketId } });
-    const { date, time } = ticket;
     if (!ticket) throw new NotFoundException(MESSAGES.TRADES.NOT_EXISTS.TICKET);
 
+    const { date, time } = ticket;
     const showId = ticket.showId;
 
     //1-2 해당 공연이 존재하는지 검증
@@ -265,7 +265,7 @@ export class TradesService {
 
     //본인의 티켓인지 검증
     if (ticket.userId !== sellerId) {
-      throw new BadRequestException(MESSAGES.TRADES.NOT_EXISTS.AUTHORITY);
+      throw new BadRequestException(MESSAGES.TRADES.NOT_HAVE.TICKET);
     }
 
     //검증 타일 END==================================================
@@ -275,7 +275,11 @@ export class TradesService {
 
     try {
       //정책에 따라 티켓의 가격을 중고거래 게시된 시점의 가격으로 고정
-      await queryRunner.manager.update(Ticket, { id: ticketId }, { price: price });
+      await queryRunner.manager.update(
+        Ticket,
+        { id: ticketId },
+        { price: price, status: TicketStatus.TRADING }
+      );
 
       const closedAt = await this.returnCloseTime(ticket.id);
       const trade = await queryRunner.manager.save(Trade, {
@@ -340,7 +344,7 @@ export class TradesService {
 
     //해당 티켓 존재 확인
 
-    let ticket = await this.TicketRepository.findOne({ where: { id: trade.ticketId } });
+    const ticket = await this.TicketRepository.findOne({ where: { id: trade.ticketId } });
     if (!ticket) throw new NotFoundException(MESSAGES.TRADES.NOT_EXISTS.TICKET);
 
     //구매자와 판매자의 유저 정보 가져오기
@@ -372,45 +376,38 @@ export class TradesService {
       buyer.point -= ticket.price;
       seller.point += ticket.price - Math.floor(ticket.price * 0.05);
 
-      //testConsole 삭제할 예정
-      console.log(testCon++);
-
       //결제 로직
       await queryRunner.manager.save(User, buyer);
       await queryRunner.manager.save(User, seller);
-
-      //testConsole 삭제할 예정
-      console.log(testCon++);
 
       //tradeLog데이타베이스에도 저장
       const log = { tradeId: tradeId, buyerId, sellerId: seller.id };
       await queryRunner.manager.save(TradeLog, log);
 
-      //testConsole 삭제할 예정
-      console.log(testCon++);
+      //티켓 변경 로직 START========================
 
       //구매자에게 전할 새로운 티켓을 생성하고 새로운 티켓을 데이터베이스에 저장
-      const newTicket = ticket;
-      newTicket.userId = buyerId;
-      newTicket.nickname = buyer.nickname;
+      const newTicket = { ...ticket };
 
-      //기존의 티켓은 status를 변경
+      //티켓의 상태를 바꾼 뒤에 저장
       ticket.status = TicketStatus.SOLD;
       await queryRunner.manager.save(Ticket, ticket);
 
-      //testConsole 삭제할 예정
-      console.log(testCon++);
+      //티켓의 상태를 바꾼 뒤에 구매자에게 저장
+      delete newTicket.id;
+      newTicket.userId = buyer.id;
+      newTicket.status = TicketStatus.USEABLE;
+      newTicket.nickname = buyer.nickname;
+
+      await queryRunner.manager.save(Ticket, newTicket);
 
       //새로운 티켓 id를 레디스에 저장
       this.addRedisTicket(String(newId), trade.closedAt);
-      //새로운 티켓 정보를 데이터베이스에 저장
-      await queryRunner.manager.create(Ticket, newTicket);
+
+      //티켓 변경 로직 END========================
 
       //거래 삭제
       await queryRunner.manager.delete(Trade, tradeId);
-
-      //testConsole 삭제할 예정
-      console.log(testCon++);
 
       await queryRunner.commitTransaction();
     } catch (err) {
@@ -428,7 +425,7 @@ export class TradesService {
     return { message: '성공적으로 티켓을 구매하였습니다.' };
   }
 
-  //중고 거래 로그 조회
+  //<7>중고 거래 로그 조회
   async getLogs(userId: number) {
     const buyLogs = await this.TradeLogRepository.find({
       where: { buyerId: userId },
