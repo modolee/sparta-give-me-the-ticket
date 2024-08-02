@@ -63,14 +63,17 @@ export class TradesController {
   constructor(private readonly tradesService: TradesService) {}
 
   //테스트 메서드==============================
+
   @Get('/hello')
   @ApiOperation({
     summary: SWAGGER.TRADES.HELLO.API_OPERATION.SUMMARY,
     description: SWAGGER.TRADES.HELLO.API_OPERATION.DESCRIPTION,
   })
   @ApiOkResponse({ description: 'hello를 출력합니다' })
-  async hello() {
-    return await this.tradesService.hello(5);
+  @UseGuards(AuthGuard('jwt'))
+  async hello(@Req() req: { user: User }) {
+    const user = req.user;
+    return await this.tradesService.hello(user.id);
   }
 
   @Get('/test')

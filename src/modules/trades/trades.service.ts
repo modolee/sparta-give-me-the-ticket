@@ -265,7 +265,7 @@ export class TradesService {
 
     //본인의 티켓인지 검증
     if (ticket.userId !== sellerId) {
-      return new BadRequestException(MESSAGES.TRADES.NOT_EXISTS.AUTHORITY);
+      throw new BadRequestException(MESSAGES.TRADES.NOT_EXISTS.AUTHORITY);
     }
 
     //검증 타일 END==================================================
@@ -297,15 +297,7 @@ export class TradesService {
     } finally {
       queryRunner.release();
     }
-
-    // const closedAt = await this.returnCloseTime(ticket.id);
-    // return await this.TradeRepository.save({ sellerId, ticketId, showId, price, closedAt });
-
-    // //정책에 따라 티켓의 가격을 중고거래 게시된 시점의 가격으로 고정
-    // await this.TicketRepository.update({ id: ticketId }, { price: price });
-    // const closedAt = await this.returnCloseTime(ticket.id);
-
-    // return { sellerId, ticketId, showId, price, closedAt };
+    return { message: MESSAGES.TRADES.SUCCESSFULLY_CREATE.TRADE };
   }
 
   //<4> 중고 거래 수정 메서드 //완료(검증 대부분 완료)  //테스트 완료
@@ -358,6 +350,10 @@ export class TradesService {
     const buyer = await this.UserRepository.findOne({ where: { id: buyerId } });
     if (!buyer) throw new NotFoundException(MESSAGES.TRADES.NOT_EXISTS.BUYER);
 
+    //구매자와 판매자가 동일한 경우
+    if (seller.id === buyer.id)
+      throw new BadRequestException(MESSAGES.TRADES.EQUAL.BUYER_AND_SELLER);
+
     //현재 가장 높은 ticketId보다 1 높은 값 (새로 재발급 하기 위해서)
     let query = await this.TicketRepository.query('SELECT MAX(id) AS maxId FROM tickets');
     const newId = query[0].maxId + 1;
@@ -368,30 +364,58 @@ export class TradesService {
     await queryRunner.startTransaction();
 
     try {
-      //새로운 티켓 id를 레디스에 저장
-      this.addRedisTicket(String(newId), trade.closedAt);
-
+      let testCon = 0;
       //검증 타일===================
+      //구매자의 보유 포인트가 적다면 구매 불가 (현재 회사에 돈이 들어가는 로직은 구현되어 있지 않음!)
       if (buyer.point < ticket.price)
         throw new BadRequestException(MESSAGES.TRADES.NOT_ENOUGH.MONEY);
       buyer.point -= ticket.price;
+      seller.point += ticket.price - Math.floor(ticket.price * 0.05);
+
+      //testConsole 삭제할 예정
+      console.log(testCon++);
+
+      //결제 로직
       await queryRunner.manager.save(User, buyer);
+      await queryRunner.manager.save(User, seller);
+
+      //testConsole 삭제할 예정
+      console.log(testCon++);
 
       //tradeLog데이타베이스에도 저장
       const log = { tradeId: tradeId, buyerId, sellerId: seller.id };
-      await queryRunner.manager.save(TradeLog);
+      await queryRunner.manager.save(TradeLog, log);
+
+      //testConsole 삭제할 예정
+      console.log(testCon++);
 
       //구매자에게 전할 새로운 티켓을 생성하고 새로운 티켓을 데이터베이스에 저장
       const newTicket = ticket;
       newTicket.userId = buyerId;
       newTicket.nickname = buyer.nickname;
 
-      await queryRunner.manager.save(Ticket, newTicket);
+      //기존의 티켓은 status를 변경
+      ticket.status = TicketStatus.SOLD;
+      await queryRunner.manager.save(Ticket, ticket);
+
+      //testConsole 삭제할 예정
+      console.log(testCon++);
+
+      //새로운 티켓 id를 레디스에 저장
+      this.addRedisTicket(String(newId), trade.closedAt);
+      //새로운 티켓 정보를 데이터베이스에 저장
+      await queryRunner.manager.create(Ticket, newTicket);
+
+      //거래 삭제
+      await queryRunner.manager.delete(Trade, tradeId);
+
+      //testConsole 삭제할 예정
+      console.log(testCon++);
 
       await queryRunner.commitTransaction();
     } catch (err) {
       await queryRunner.rollbackTransaction();
-      return { message: MESSAGES.TRADES.FAILED.PURCHASE };
+      return { message: `${MESSAGES.TRADES.FAILED.PURCHASE} 사유:${err}` };
     } finally {
       await queryRunner.release();
     }
@@ -401,7 +425,7 @@ export class TradesService {
     // //기존에 존재하는 id를 레디스에서 제거
     this.deleteRedisTicket(String(trade.ticketId));
 
-    return { newId };
+    return { message: '성공적으로 티켓을 구매하였습니다.' };
   }
 
   //중고 거래 로그 조회
@@ -424,8 +448,8 @@ export class TradesService {
   }
 
   //=======================테스트 함수 START====================
-  async hello(a: number) {
-    return { message: 'hello' };
+  async hello(userId: number) {
+    return await this.UserRepository.findOne({ where: { id: userId } });
   }
 
   async test() {
