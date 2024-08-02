@@ -5,7 +5,7 @@ export const MESSAGES = {
     EQUAL: { BUYER_AND_SELLER: '구매자와 판매자가 동일합니다!' },
     NOT_EQUAL: {},
     NOT_EXISTS: {
-      AUTHORITY: '권한이 없거나 해당 게시물의 작성자가 아닙니다',
+      AUTHORITY: '권한이 없습니다',
       TRADE_LIST: '중고거래 목록이 존재하지 않습니다',
       TRADE_LOG: '중고거래 로그가 존재하지 않습니다!',
       TRADE: '존재하지 않는 거래입니다.',
@@ -14,6 +14,9 @@ export const MESSAGES = {
       SCHEDULE: '존재하지 않는 공연 일정입니다.',
       BUYER: '구매자가 존재하지 않습니다',
       SELLER: '판매자가 존재하지 않습니다',
+    },
+    NOT_HAVE: {
+      TICKET: '해당 티켓을 소유하고 있지 않습니다',
     },
     NOT_ENOUGH: {
       MONEY: '금액이 충분하지 않습니다',
