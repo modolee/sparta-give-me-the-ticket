@@ -1,5 +1,6 @@
 //others
 
+//dfs
 import { addHours, startOfDay, subDays, subHours } from 'date-fns';
 
 //Dto
@@ -8,7 +9,6 @@ import { UpdateTradeDto } from './dto/update-trade.dto';
 
 //error Type
 import {
-  Injectable,
   Catch,
   ArgumentsHost,
   HttpException,
@@ -19,7 +19,7 @@ import {
 } from '@nestjs/common';
 
 //DIP
-import { Inject } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Repository } from 'typeorm';
