@@ -15,6 +15,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { SearchModule } from './modules/shows/search/search.module';
 import { ViewsController } from './views/index.view.controller';
 import { AuthViewsController } from './views/auth/auth.view.controller';
+import { ShowsViewsController } from './views/shows/shows.view.controller';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -42,7 +43,7 @@ import { AuthViewsController } from './views/auth/auth.view.controller';
     RedisModule,
     SearchModule,
   ],
-  controllers: [AppController, ViewsController, AuthViewsController],
+  controllers: [AppController, ViewsController, AuthViewsController, ShowsViewsController],
   providers: [AppService],
 })
 export class AppModule {}
