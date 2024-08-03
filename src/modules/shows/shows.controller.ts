@@ -12,21 +12,20 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { CreateShowDto } from './dto/create-show.dto';
-import { ShowsService } from 'src/modules/shows/shows.service';
-import { User } from 'src/entities/users/user.entity';
-import { USER_BOOKMARK_MESSAGES } from 'src/commons/constants/users/user-bookmark-messages.constant';
-import { AuthGuard } from '@nestjs/passport';
-import { Schedule } from 'src/entities/shows/schedule.entity';
-import { DeleteBookmarkDto } from './dto/delete-bookmark.dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { UpdateShowDto } from './dto/update-show.dto';
-import { GetShowListDto } from './dto/get-show-list.dto';
-import { CreateTicketDto } from './dto/create-ticket-dto';
+import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/utils/roles.guard';
 import { Roles } from '../auth/utils/roles.decorator';
 import { Role } from 'src/commons/types/users/user-role.type';
+import { ShowsService } from 'src/modules/shows/shows.service';
+import { CreateShowDto } from './dto/create-show.dto';
+import { CreateTicketDto } from './dto/create-ticket-dto';
+import { GetShowListDto } from './dto/get-show-list.dto';
+import { UpdateShowDto } from './dto/update-show.dto';
+import { DeleteBookmarkDto } from './dto/delete-bookmark.dto';
+import { USER_BOOKMARK_MESSAGES } from 'src/commons/constants/users/user-bookmark-messages.constant';
 import { SHOW_TICKET_MESSAGES } from 'src/commons/constants/shows/show-ticket-messages.constant';
+import { SHOW_MESSAGES } from 'src/commons/constants/shows/show-messages.constant';
 
 @ApiTags('공연')
 @Controller('shows')
@@ -44,7 +43,12 @@ export class ShowsController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.ADMIN)
   async createShow(@Body() createShowDto: CreateShowDto, @Req() req: any) {
-    return await this.showsService.createShow(createShowDto, req);
+    const show = await this.showsService.createShow(createShowDto, req);
+    return {
+      status: HttpStatus.CREATED,
+      message: SHOW_MESSAGES.CREATE.SUCCEED,
+      date: show,
+    };
   }
 
   /**
@@ -53,7 +57,15 @@ export class ShowsController {
    * */
   @Get()
   async getShowList(@Query() getShowListDto: GetShowListDto) {
-    return await this.showsService.getShowList(getShowListDto);
+    const result = await this.showsService.getShowList(getShowListDto);
+    return {
+      status: HttpStatus.OK,
+      message: SHOW_MESSAGES.GET_LIST.SUCCEED,
+      date: result.results,
+      total: result.total,
+      page: result.page,
+      totalPages: result.totalPages,
+    };
   }
 
   /**
@@ -63,7 +75,12 @@ export class ShowsController {
    * */
   @Get(':showId')
   async getShow(@Param('showId') showId: number) {
-    return await this.showsService.getShow(showId);
+    const show = await this.showsService.getShow(showId);
+    return {
+      status: HttpStatus.OK,
+      message: SHOW_MESSAGES.GET.SUCCEED,
+      date: show,
+    };
   }
 
   /**
@@ -78,7 +95,11 @@ export class ShowsController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.ADMIN)
   async updateShow(@Param('showId') showId: number, @Body() updateShowDto: UpdateShowDto) {
-    return await this.showsService.updateShow(showId, updateShowDto);
+    await this.showsService.updateShow(showId, updateShowDto);
+    return {
+      status: HttpStatus.OK,
+      message: SHOW_MESSAGES.UPDATE.SUCCEED,
+    };
   }
 
   /**
@@ -91,7 +112,11 @@ export class ShowsController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles(Role.ADMIN)
   async deleteShow(@Param('showId') showId: number) {
-    return await this.showsService.deleteShow(showId);
+    await this.showsService.deleteShow(showId);
+    return {
+      status: HttpStatus.OK,
+      message: SHOW_MESSAGES.DELETE.SUCCEED,
+    };
   }
 
   /**

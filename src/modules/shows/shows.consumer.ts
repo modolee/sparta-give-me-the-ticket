@@ -5,7 +5,7 @@ import { QUEUES } from 'src/commons/constants/queue.constant';
 
 //대기열에 넣은 걸 차례대로 꺼내는 consumer 로직
 @Processor(QUEUES.TICKET_QUEUE)
-export class QueueConsumer extends WorkerHost {
+export class ShowsConsumer extends WorkerHost {
   constructor(private readonly showsService: ShowsService) {
     super();
   }

@@ -1,5 +1,7 @@
 import { Type } from 'class-transformer';
-import { IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, Min, MinLength } from 'class-validator';
+import { SHOW_MESSAGES } from 'src/commons/constants/shows/show-messages.constant';
+import { MIN_SHOW_SEARCH_LENGTH } from 'src/commons/constants/shows/shows.constant';
 import { ShowCategory } from 'src/commons/types/shows/show-category.type';
 
 export class GetShowListDto {
@@ -16,6 +18,7 @@ export class GetShowListDto {
    * @example "시카고"
    */
   @IsOptional()
+  @MinLength(MIN_SHOW_SEARCH_LENGTH, { message: SHOW_MESSAGES.GET_LIST.MIN_LENGTH })
   @IsString()
   search?: string;
 

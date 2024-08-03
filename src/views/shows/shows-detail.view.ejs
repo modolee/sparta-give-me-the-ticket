@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nest & EJS ❤</title>
+
+    <!-- 부트스트랩 CSS CDN -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65"
+      crossorigin="anonymous"
+    />
+
+    <!-- 부트스트랩 JS CDN -->
+    <script
+      src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"
+      integrity="sha384-oBqDVmMz9ATKxIep9tiCxS/Z9fNfEXiDAYTujMAeBAsjFuCZSmKbSSUnQlmh/jp3"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.min.js"
+      integrity="sha384-cuYeSxntonz0PPNlHhBs68uyIAVpIIOZZ5JqeqvYYIcEL727kskC66kF92t6Xl2V"
+      crossorigin="anonymous"
+    ></script>
+
+    <!-- 티켓 상세조회 페이지에 필요한 CSS 및 JS -->
+    <link rel="stylesheet" href="/css/shows/shows-detail.css" />
+    <script type="module" src="/js/shows/shows-detail.js" defer></script>
+  </head>
+
+  <body>
+    <!-- include 안에는 상대 경로 작성 -->
+    <%- include('../common/header.view.ejs') %>
+    <main>
+      <div class="container">
+        <!-- Heading -->
+        <h1>SHOW DETAIL</h1>
+
+        <!-- Show ID 입력 -->
+        <div class="mb-3">
+          <label for="showId" class="form-label">공연 ID</label>
+          <input
+            type="number"
+            class="form-control"
+            id="showId"
+            placeholder="공연 ID를 입력하세요"
+          />
+        </div>
+
+        <!-- 버튼 추가 -->
+
+        <!-- Form -->
+        <div id="shows">
+          <button id="showLink" class="btn btn-primary">공연 정보보기</button>
+          <!-- 공연 정보가 보입니다. -->
+          <ul id="shows"></ul>
+        </div>
+        <form class="schedule-form">
+          <!-- book button -->
+          <button class="booking__btn">Booking</button>
+        </form>
+        <!-- separator -->
+        <div class="separator">
+          <p>OR</p>
+        </div>
+        <!-- update button -->
+        <button class="update__btn">Update</button>
+        <!-- separator -->
+        <div class="separator">
+          <p>OR</p>
+        </div>
+        <!-- back button -->
+        <button class="back__btn">
+          <i class="fa fa-google"></i>
+          Back
+        </button>
+      </div>
+    </main>
+    <footer></footer>
+  </body>
+</html>

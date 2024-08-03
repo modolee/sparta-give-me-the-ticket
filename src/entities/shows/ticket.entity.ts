@@ -8,6 +8,7 @@ import {
   JoinColumn,
   OneToMany,
   DeleteDateColumn,
+  Index,
 } from 'typeorm';
 import { User } from '../users/user.entity';
 import { Show } from './show.entity';
@@ -15,10 +16,12 @@ import { Trade } from '../trades/trade.entity';
 import { TicketStatus } from '../../commons/types/shows/ticket.type';
 import { IsMilitaryTime } from 'class-validator';
 import { Schedule } from './schedule.entity';
+import { SHOW_TICKETS } from 'src/commons/constants/shows/show-tickets.constant';
 
 @Entity({
   name: 'tickets',
 })
+@Index([SHOW_TICKETS.COMMON.INDEX.USER, SHOW_TICKETS.COMMON.INDEX.SHOW])
 export class Ticket {
   @PrimaryGeneratedColumn({ unsigned: true })
   id: number;

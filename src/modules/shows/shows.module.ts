@@ -12,7 +12,7 @@ import { ShowsController } from './shows.controller';
 import { ShowsService } from './shows.service';
 import { ImagesService } from '../images/images.service';
 import { BullModule } from '@nestjs/bullmq';
-import { QueueConsumer } from './shows.consumer';
+import { ShowsConsumer } from './shows.consumer';
 import { QUEUES } from 'src/commons/constants/queue.constant';
 import { TicketQueueEvents } from 'src/queue-events/ticket.queue-event';
 @Module({
@@ -26,7 +26,7 @@ import { TicketQueueEvents } from 'src/queue-events/ticket.queue-event';
   ],
   controllers: [ShowsController],
 
-  providers: [ShowsService, QueueConsumer, TicketQueueEvents, ImagesService],
+  providers: [ShowsService, ShowsConsumer, TicketQueueEvents, ImagesService],
   exports: [TypeOrmModule],
 })
 export class ShowsModule {}

@@ -1,4 +1,3 @@
-import { IsMilitaryTime } from 'class-validator';
 import {
   Column,
   CreateDateColumn,
@@ -27,7 +26,7 @@ export class Schedule {
 
   /**
    * 공연 날짜
-   * @example "2024-07-25"
+   * @example "2024-09-01"
    */
   @Factory((faker) => {
     const today = new Date();
