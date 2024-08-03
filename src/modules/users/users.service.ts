@@ -106,6 +106,18 @@ export class UsersService {
     }
   }
 
+  // 사용자 프로필 조회
+  async getUserProfile(user: User) {
+    try {
+      const { email, nickname, profileImg, point } = user;
+      const profile = { email, nickname, profileImg, point };
+
+      return profile;
+    } catch (err) {
+      throw new InternalServerErrorException(USER_MESSAGES.USER.USERINFO.GET_PROFILE.FAILURE);
+    }
+  }
+
   // 사용자 정보 수정
   async updateUser(id: number, userUpdateDto: UserUpdateDto) {
     const { nickname, profileImg, currentPassword } = userUpdateDto;

@@ -6,7 +6,7 @@ import { DataFactory } from 'nestjs-seeder';
 import { Schedule } from 'src/entities/shows/schedule.entity';
 
 @Injectable()
-export class ScheduleSeeder implements Seeder {
+export class SchedulesSeeder implements Seeder {
   constructor(
     @InjectRepository(Schedule)
     private readonly scheduleRepository: Repository<Schedule>

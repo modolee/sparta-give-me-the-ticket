@@ -13,12 +13,7 @@ document.addEventListener('DOMContentLoaded', function () {
   //----------- booking ---------------------
   booking.addEventListener('click', function (e) {
     e.preventDefault();
-    const h1 = signUp.closest('li').parentNode.previousElementSibling; // h1 요소 찾기
     h1.textContent = 'BOOKING TICKET';
-    signUp.parentElement.style.opacity = '1';
-    Array.from(signUp.parentElement.parentElement.children).forEach(function (sibling) {
-      if (sibling !== signUp.parentElement) sibling.style.opacity = '.6';
-    });
     bookingBtn.textContent = 'BOOK';
 
     // 티켓 구매 이벤트 연결
