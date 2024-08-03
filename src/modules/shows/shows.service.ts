@@ -96,27 +96,23 @@ export class ShowsService {
       await this.searchService.createShowIndex(show);
 
       return {
-        status: HttpStatus.CREATED,
-        message: SHOW_MESSAGES.CREATE.SUCCEED,
-        data: {
-          id: show.id,
-          userId: show.userId,
-          title: show.title,
-          content: show.content,
-          category: show.category,
-          runtime: show.runtime,
-          location: show.location,
-          price: show.price,
-          totalSeat: show.totalSeat,
-          schedules: show.schedules.map(({ date, time, remainSeat }) => ({
-            date,
-            time,
-            remainSeat,
-          })),
-          imageUrl: images.map(({ imageUrl }) => imageUrl),
-          createdAt: show.createdAt,
-          updatedAt: show.updatedAt,
-        },
+        id: show.id,
+        userId: show.userId,
+        title: show.title,
+        content: show.content,
+        category: show.category,
+        runtime: show.runtime,
+        location: show.location,
+        price: show.price,
+        totalSeat: show.totalSeat,
+        schedules: show.schedules.map(({ date, time, remainSeat }) => ({
+          date,
+          time,
+          remainSeat,
+        })),
+        imageUrl: images.map(({ imageUrl }) => imageUrl),
+        createdAt: show.createdAt,
+        updatedAt: show.updatedAt,
       };
     } catch (error) {
       //트랜잭션 롤백
@@ -136,9 +132,7 @@ export class ShowsService {
     const { results, total } = await this.searchService.searchShows(category, search, page, limit);
 
     return {
-      status: HttpStatus.OK,
-      message: SHOW_MESSAGES.GET_LIST.SUCCEED,
-      data: results,
+      results,
       total,
       page,
       totalPages: Math.ceil(total / limit),
@@ -158,26 +152,22 @@ export class ShowsService {
     }
 
     return {
-      status: HttpStatus.OK,
-      message: SHOW_MESSAGES.GET.SUCCEED,
-      data: {
-        id: show.id,
-        userId: show.userId,
-        title: show.title,
-        content: show.content,
-        category: show.category,
-        runtime: show.runtime,
-        location: show.location,
-        price: show.price,
-        totalSeat: show.totalSeat,
-        schedules: show.schedules.map(({ date, time }) => ({
-          date,
-          time,
-        })),
-        createdAt: show.createdAt,
-        updatedAt: show.updatedAt,
-        deletedAt: show.deletedAt,
-      },
+      id: show.id,
+      userId: show.userId,
+      title: show.title,
+      content: show.content,
+      category: show.category,
+      runtime: show.runtime,
+      location: show.location,
+      price: show.price,
+      totalSeat: show.totalSeat,
+      schedules: show.schedules.map(({ date, time }) => ({
+        date,
+        time,
+      })),
+      createdAt: show.createdAt,
+      updatedAt: show.updatedAt,
+      deletedAt: show.deletedAt,
     };
   }
 
@@ -246,6 +236,7 @@ export class ShowsService {
       }
       //show안에 있는 images요소 삭제
       delete show.images;
+
       // 공연 변경 사항 저장
       await queryRunner.manager.save(show);
 
@@ -255,10 +246,7 @@ export class ShowsService {
       //Elasticsearch 인덱싱
       await this.searchService.createShowIndex(show);
 
-      return {
-        status: HttpStatus.OK,
-        message: SHOW_MESSAGES.UPDATE.SUCCEED,
-      };
+      return {};
     } catch (error) {
       // 트랜잭션 롤백
       await queryRunner.rollbackTransaction();
@@ -315,10 +303,7 @@ export class ShowsService {
       //Elasticsearch 인덱스 삭제
       await this.searchService.deleteShowIndex(showId);
 
-      return {
-        status: HttpStatus.OK,
-        message: SHOW_MESSAGES.DELETE.SUCCEED,
-      };
+      return {};
     } catch (error) {
       // 트랜잭션 롤백
       await queryRunner.rollbackTransaction();
