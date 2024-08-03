@@ -50,6 +50,9 @@ export const SHOW_MESSAGES = {
   CREATE: {
     SUCCEED: '공연 생성에 성공했습니다.',
     FAIL: '공연 생성에 실패했습니다.',
+    SCHEDULE: {
+      INVALID: '오늘 날짜 이전의 공연은 등록할 수 없습니다.',
+    },
   },
   GET_LIST: {
     SUCCEED: '공연 조회에 성공했습니다.',

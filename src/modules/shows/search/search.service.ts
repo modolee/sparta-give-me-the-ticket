@@ -1,11 +1,10 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { MoreThan, Repository } from 'typeorm';
 import { ElasticsearchService } from '@nestjs/elasticsearch';
 import { Cron } from '@nestjs/schedule';
-import { InjectRepository } from '@nestjs/typeorm';
-import { SHOW_MESSAGES } from 'src/commons/constants/shows/show-messages.constant';
 import { Show } from 'src/entities/shows/show.entity';
-import { MoreThan, Repository } from 'typeorm';
-
+import { SHOW_MESSAGES } from 'src/commons/constants/shows/show-messages.constant';
 @Injectable()
 export class SearchService {
   private readonly indexName = 'shows';
@@ -35,9 +34,9 @@ export class SearchService {
                 tokenizer: {
                   ngram_tokenizer: {
                     type: 'ngram',
-                    min_gram: 2,
+                    min_gram: 1,
                     max_gram: 5,
-                    token_chars: ['letter', 'digit'],
+                    token_chars: ['letter', 'digit', 'whitespace'],
                   },
                 },
                 analyzer: {
@@ -97,18 +96,15 @@ export class SearchService {
   private async syncAllShows() {
     try {
       // 삭제된 show를 가져와서 인덱스에서 삭제
-      const deletedShows = await this.showRepository.find({
-        where: { deletedAt: MoreThan(new Date(0)) },
-      });
-      for (const show of deletedShows) {
-        await this.deleteShowIndex(show.id);
-      }
+      const [deletedShows, allShows] = await Promise.all([
+        this.showRepository.find({ where: { deletedAt: MoreThan(new Date(0)) } }),
+        this.showRepository.find({ where: { deletedAt: null } }),
+      ]);
 
-      // 삭제되지 않은 모든 show를 가져와서 인덱스에 추가
-      const allShows = await this.showRepository.find({ where: { deletedAt: null } });
-      for (const show of allShows) {
-        await this.indexShowData(show);
-      }
+      await Promise.all([
+        ...deletedShows.map((show) => this.deleteShowIndex(show.id)),
+        ...allShows.map((show) => this.indexShowData(show)),
+      ]);
     } catch (error) {
       throw new InternalServerErrorException(SHOW_MESSAGES.INDEX.FAIL);
     }
@@ -121,16 +117,12 @@ export class SearchService {
 
   // show 생성 시 인덱스에 추가
   async createShowIndex(show: Show) {
-    try {
-      await this.indexShowData(show);
-    } catch (error) {
-      throw new InternalServerErrorException(SHOW_MESSAGES.INDEX.FAIL);
-    }
+    await this.indexShowData(show);
   }
 
   // show 검색 기능
   async searchShows(category: string, search: string, page: number, limit: number) {
-    const mustQueries: any[] = [];
+    const mustQueries = [];
 
     if (category) {
       mustQueries.push({ match: { category } });
@@ -138,17 +130,16 @@ export class SearchService {
 
     if (search) {
       mustQueries.push({
-        match: {
-          title: {
-            query: search,
-            analyzer: 'ngram_analyzer',
-            fuzziness: 'AUTO',
-          },
+        query_string: {
+          query: `*${search.replace(/ /g, '*')}*`,
+          fields: ['title'],
+          analyze_wildcard: true,
+          default_operator: 'AND',
         },
       });
     }
 
-    const queryBody = {
+    const queryBody: any = {
       query: {
         bool: {
           must: mustQueries,
@@ -164,7 +155,6 @@ export class SearchService {
         index: this.indexName,
         body: queryBody,
       });
-
       const hits = result.body.hits.hits;
       const results = hits.map((item) => item._source);
       const totalHits =
