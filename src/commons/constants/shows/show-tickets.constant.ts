@@ -3,6 +3,10 @@ export const SHOW_TICKETS = {
     SHOW: {
       HOURS: 2,
     },
+    INDEX: {
+      USER: 'userId',
+      SHOW: 'showId',
+    },
     SEAT: {
       DEDUCTED: 1,
       INCREASED: 1,
@@ -27,6 +31,14 @@ export const SHOW_TICKETS = {
         TEN: 0.1,
         FIFTY: 0.5,
       },
+
+      COUNT: {
+        MAX: 5,
+        TABLE: 'ticket',
+        USER: 'ticket.userId = :userId',
+        SHOW: 'ticket.showId = :showId',
+      },
+
       REFUND_STATUS: 'REFUNDED',
     },
   },
