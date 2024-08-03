@@ -15,11 +15,13 @@ export class SearchService {
     @InjectRepository(Show) private readonly showRepository: Repository<Show>
   ) {}
 
+  // 모듈이 초기화 될 때 인덱스 생성 및 모든 show 동기화
   async onModuleInit() {
     await this.createIndex();
     await this.syncAllShows();
   }
 
+  // Elasticsearch 인덱스 생성
   private async createIndex() {
     try {
       const indexExists = await this.eService.indices.exists({ index: this.indexName });
@@ -33,6 +35,9 @@ export class SearchService {
                 tokenizer: {
                   ngram_tokenizer: {
                     type: 'ngram',
+                    min_gram: 2,
+                    max_gram: 5,
+                    token_chars: ['letter', 'digit'],
                   },
                 },
                 analyzer: {
@@ -63,6 +68,7 @@ export class SearchService {
     }
   }
 
+  // show 데이터 인덱싱
   private async indexShowData(show: Show) {
     try {
       await this.eService.index({
@@ -87,26 +93,33 @@ export class SearchService {
     }
   }
 
-  async syncAllShows() {
+  // show 동기화 (스케줄링)
+  private async syncAllShows() {
     try {
-      const shows = await this.showRepository.find();
-      for (const show of shows) {
-        if (show.deletedAt === null) {
-          await this.indexShowData(show);
-        } else {
-          await this.deleteShowIndex(show.id);
-        }
+      // 삭제된 show를 가져와서 인덱스에서 삭제
+      const deletedShows = await this.showRepository.find({
+        where: { deletedAt: MoreThan(new Date(0)) },
+      });
+      for (const show of deletedShows) {
+        await this.deleteShowIndex(show.id);
+      }
+
+      // 삭제되지 않은 모든 show를 가져와서 인덱스에 추가
+      const allShows = await this.showRepository.find({ where: { deletedAt: null } });
+      for (const show of allShows) {
+        await this.indexShowData(show);
       }
     } catch (error) {
       throw new InternalServerErrorException(SHOW_MESSAGES.INDEX.FAIL);
     }
   }
 
-  @Cron('* * * * *') //1분 마다 동기화
+  @Cron('* * * * *') // 1분마다 동기화
   async handleCron() {
     await this.syncAllShows();
   }
 
+  // show 생성 시 인덱스에 추가
   async createShowIndex(show: Show) {
     try {
       await this.indexShowData(show);
@@ -115,8 +128,9 @@ export class SearchService {
     }
   }
 
+  // show 검색 기능
   async searchShows(category: string, search: string, page: number, limit: number) {
-    const mustQueries = [];
+    const mustQueries: any[] = [];
 
     if (category) {
       mustQueries.push({ match: { category } });
@@ -134,7 +148,7 @@ export class SearchService {
       });
     }
 
-    const queryBody: any = {
+    const queryBody = {
       query: {
         bool: {
           must: mustQueries,
@@ -160,10 +174,12 @@ export class SearchService {
 
       return { results, total: totalHits };
     } catch (error) {
+      console.error('Search error:', error);
       return { results: [], total: 0 };
     }
   }
 
+  // show 삭제 시 인덱스에서 삭제
   async deleteShowIndex(showId: number) {
     try {
       await this.eService.deleteByQuery({

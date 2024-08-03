@@ -1,4 +1,4 @@
-import { MIN_SHOW_CONTENT_LENGTH } from './shows.constant';
+import { MIN_SHOW_CONTENT_LENGTH, MIN_SHOW_SEARCH_LENGTH } from './shows.constant';
 
 export const SHOW_MESSAGES = {
   COMMON: {
@@ -53,6 +53,7 @@ export const SHOW_MESSAGES = {
   },
   GET_LIST: {
     SUCCEED: '공연 조회에 성공했습니다.',
+    MIN_LENGTH: `검색어는 ${MIN_SHOW_SEARCH_LENGTH}자 이상 입력해야합니다.`,
     FAIL: '공연 조회에 실패했습니다.',
   },
   GET: {
