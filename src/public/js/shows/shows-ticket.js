@@ -1,56 +1,65 @@
 document.addEventListener('DOMContentLoaded', function () {
-  const booking = document.querySelector('#booking');
   const bookingBtn = document.querySelector('.booking__btn');
   const backBtn = document.querySelector('.back__btn');
   const token = window.localStorage.getItem('accessToken');
 
-  //로그인한 사용자가 아니면 로그인 페이지로 이동
+  function getShowIdFromPath() {
+    const pathSegments = window.location.pathname.split('/');
+    return pathSegments[pathSegments.length - 2]; // parameter에서 showId를 받는 위치
+  }
+
+  function getQueryParam(param) {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(param);
+  }
+
+  const showId = getShowIdFromPath();
+  const selectedScheduleId = getQueryParam('selectedScheduleId');
+
   if (!token) {
     window.location.href = '/views/auth/sign';
     alert('로그인이 필요합니다');
+    return;
   }
 
-  //----------- booking ---------------------
-  booking.addEventListener('click', function (e) {
-    e.preventDefault();
-    h1.textContent = 'BOOKING TICKET';
-    bookingBtn.textContent = 'BOOK';
-
-    // 티켓 구매 이벤트 연결
-  });
-
   bookingBtn.addEventListener('click', async (e) => {
-    e.preventDefault(); // 기본 이벤트 동작을 막기 위한 부분
+    e.preventDefault();
 
-    // 티켓 예매 API에게 보낼 사용자 입력 DTO 객체 - 입력받을 객체들이 number 형식이라 Number()로 감싸줍니다.
+    if (!selectedScheduleId) {
+      alert('선택한 스케줄이 없습니다.');
+      return;
+    }
+
     const createTicketDto = {
-      scheduleId: Number(document.getElementById('scheduleId').value),
-      showId: Number(document.getElementById('showId').value),
+      scheduleId: Number(selectedScheduleId),
     };
 
     try {
-      // 티켓 예매 API 호출. bearer token인 access 토큰을 header에 담기 때문에 같이 넣어줌.
-      await axios.post(`/shows/${createTicketDto.showId}/ticket`, createTicketDto, {
+      const response = await axios.post(`/shows/${showId}/ticket`, createTicketDto, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-      alert('예매가 완료되었습니다');
 
-      // 티켓 예매 완료 후 메인 페이지로 이동 - 마이페이지 생기면 경로 바꿀예정
-      window.location.href = '/views';
+      if (response.status === 201) {
+        alert('예매가 완료되었습니다');
+        window.location.href = '/views';
+      } else {
+        alert('예매에 실패하였습니다. 응답 상태 코드: ' + response.status);
+      }
     } catch (err) {
-      // 티켓 예매 실패 시 에러 처리 (에러 메세지 출력.)
-      console.log(err.response.data);
-      const errorMessage = err.response.data.message;
-      alert('티켓 정보가 잘못되었거나 문제가 발생하였습니다');
+      if (err.response && err.response.data) {
+        console.error('Error response data:', err.response.data);
+        alert('티켓 정보가 잘못되었거나 문제가 발생하였습니다: ' + err.response.data.message);
+      } else {
+        console.error('Error:', err);
+        alert('서버와의 통신 중 오류가 발생하였습니다.');
+      }
     }
   });
 
-  //----------- back ---------------------
-  //추후 경로 수정예정 - 예매를 하고 싶지 않으면 상세페이지로 돌아가기
   backBtn.addEventListener('click', function (e) {
     e.preventDefault();
-    window.location.href = '/views';
+    window.location.href = `/views/shows/${showId}`;
   });
 });
