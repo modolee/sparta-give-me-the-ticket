@@ -1,3 +1,4 @@
+/* 공통 스타일 */
 body {
   font-family: 'Montserrat', sans-serif;
   background: white;
@@ -19,6 +20,7 @@ h1 {
   transition: 0.2s linear;
 }
 
+/* 링크 스타일 */
 .links {
   list-style-type: none;
 }
@@ -29,19 +31,12 @@ h1 {
   transition: 0.2s linear;
 }
 
-.links li:nth-child(2) {
-  opacity: 0.6;
-}
-
-.links li:nth-child(2):hover {
-  opacity: 1;
-}
-
+.links li:nth-child(2),
 .links li:nth-child(3) {
   opacity: 0.6;
-  float: right;
 }
 
+.links li:nth-child(2):hover,
 .links li:nth-child(3):hover {
   opacity: 1;
 }
@@ -54,6 +49,7 @@ h1 {
   cursor: pointer;
 }
 
+/* 예매 폼 스타일 */
 .schedule-form {
   width: 100%;
   max-width: 680px;
@@ -103,7 +99,8 @@ h1 {
   color: rgba(15, 19, 42, 1);
 }
 
-.schedule-form .booking__btn {
+/* 버튼 스타일 */
+.booking__btn {
   background: #e91e63;
   color: white;
   display: block;
@@ -120,10 +117,11 @@ h1 {
   transition: 0.2s linear;
 }
 
-.schedule-form .booking__btn:hover {
+.booking__btn:hover {
   box-shadow: 0 0 0 rgba(233, 30, 99, 0);
 }
 
+/* 구분선 스타일 */
 .separator {
   display: block;
   margin: 30px auto 10px;
@@ -137,26 +135,26 @@ h1 {
   max-width: 680px;
 }
 
-.separator::before {
-  content: '';
-  position: absolute;
-  top: 8px;
-  left: 0;
-  background: rgba(15, 19, 42, 0.2);
-  height: 1px;
-  width: 45%;
-}
-
+.separator::before,
 .separator::after {
   content: '';
   position: absolute;
   top: 8px;
-  right: 0;
-  background: rgba(15, 19, 42, 0.2);
   height: 1px;
+  background: rgba(15, 19, 42, 0.2);
+}
+
+.separator::before {
+  left: 0;
   width: 45%;
 }
 
+.separator::after {
+  right: 0;
+  width: 45%;
+}
+
+/* 돌아가기 버튼 스타일 */
 .back__btn {
   display: block;
   width: 90%;
@@ -169,37 +167,12 @@ h1 {
   border-radius: 8px;
   border: none;
   line-height: 40px;
-}
-
-.back__btn.back__btn {
-  background: #5b90f0;
-  color: white;
-  box-shadow: 0 15px 30px rgba(91, 144, 240, 0.36);
-  transition: 0.2s linear;
-}
-
-.back__btn.back__btn .fa {
-  font-size: 20px;
-  padding: 0 5px 0 0;
-}
-
-.back__btn.back__btn:hover {
-  box-shadow: 0 0 0 rgba(91, 144, 240, 0);
-}
-
-.back__btn.back__btn {
   background: #25282d;
   color: white;
   box-shadow: 0 15px 30px rgba(37, 40, 45, 0.36);
   transition: 0.2s linear;
 }
 
-.back__btn.back__btn,
-.back__btn.back__btn .fa {
-  font-size: 20px;
-  padding: 0 5px 0 0;
-}
-
-.back__btn.back__btn:hover {
+.back__btn:hover {
   box-shadow: 0 0 0 rgba(37, 40, 45, 0);
 }
