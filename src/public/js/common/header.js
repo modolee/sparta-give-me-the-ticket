@@ -42,6 +42,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       } catch (err) {
         console.log(err);
         const errorMessage = err.response.data.message;
+        window.localStorage.clear();
+        window.location.href = '/views';
         alert(errorMessage);
       }
     });
