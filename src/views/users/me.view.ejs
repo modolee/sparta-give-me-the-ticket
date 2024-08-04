@@ -52,10 +52,12 @@
 
         <!-- Content -->
         <div class="content" id="profileContent">
-          <h2>My Profile</h2>
-          <p>회원 정보 (nickname, email, profileImg, point)</p>
+          <img alt="Profile Image" id="profileImg" style="max-width: 200px; max-height: 200px;">
+          <p>Nickname : <span id="nickname"></span></p>
+          <p>Email : <span id="email"></span></p>
+          <p>Point : <span id="point"></span></p>
           <!-- update user button -->
-          <button class="btn btn-primary" id="updateBtn">
+          <button class="update__btn" id="updateBtn">
             회원 정보 수정하기
           </button>
           <!-- separator -->
@@ -63,7 +65,7 @@
             <p>OR</p>
           </div>
           <!-- delete user button -->
-          <button class="btn btn-danger" id="deleteBtn">
+          <button class="delete__btn" id="deleteBtn">
             회원 탈퇴하기
           </button>
         </div>
