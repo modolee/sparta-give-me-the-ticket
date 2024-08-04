@@ -54,19 +54,19 @@ h1 {
   cursor: pointer;
 }
 
-.schedule-form {
+.booking-form {
   width: 100%;
   max-width: 680px;
   margin: 40px auto 10px;
 }
 
-.schedule-form .input__block {
+.booking-form .input__block {
   margin: 20px auto;
   display: block;
   position: relative;
 }
 
-.schedule-form .input__block.first-input__block::before {
+.booking-form .input__block.first-input__block::before {
   content: '';
   position: absolute;
   top: -15px;
@@ -81,7 +81,7 @@ h1 {
   transition: 0.2s linear;
 }
 
-.schedule-form .input__block > input {
+.booking-form .input__block > input {
   display: block;
   width: 90%;
   max-width: 680px;
@@ -96,14 +96,14 @@ h1 {
   font-family: 'Montserrat', sans-serif;
 }
 
-.schedule-form .input__block input:focus,
-.schedule-form .input__block input:active {
+.booking-form .input__block input:focus,
+.booking-form .input__block input:active {
   outline: none;
   border: none;
   color: rgba(15, 19, 42, 1);
 }
 
-.schedule-form .booking__btn {
+.booking-form .booking__btn {
   background: #e91e63;
   color: white;
   display: block;
@@ -120,7 +120,7 @@ h1 {
   transition: 0.2s linear;
 }
 
-.schedule-form .booking__btn:hover {
+.booking-form .booking__btn:hover {
   box-shadow: 0 0 0 rgba(233, 30, 99, 0);
 }
 

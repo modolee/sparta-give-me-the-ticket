@@ -393,7 +393,7 @@ export class ShowsService {
 
       // 스케줄이 있는지 확인합니다.
       const schedule = await queryRunner.manager.findOne(Schedule, {
-        where: [{ id: scheduleId }, { showId: showId }],
+        where: { id: scheduleId, showId: showId },
       });
 
       if (!schedule) {
@@ -412,7 +412,6 @@ export class ShowsService {
         .where(SHOW_TICKETS.COMMON.TICKET.COUNT.USER, { userId })
         .andWhere(SHOW_TICKETS.COMMON.TICKET.COUNT.SHOW, { showId })
         .getCount();
-
       if (ticketLimit >= SHOW_TICKETS.COMMON.TICKET.COUNT.MAX) {
         throw new ConflictException(SHOW_TICKET_MESSAGES.COMMON.TICKET.MAXIMUM);
       }
