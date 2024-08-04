@@ -143,7 +143,7 @@ export class ShowsService {
   async getShow(showId: number) {
     const show = await this.showRepository.findOne({
       where: { id: showId },
-      relations: { schedules: true },
+      relations: { schedules: true, images: true },
     });
 
     //공연 존재 여부 확인
@@ -161,10 +161,12 @@ export class ShowsService {
       location: show.location,
       price: show.price,
       totalSeat: show.totalSeat,
-      schedules: show.schedules.map(({ date, time }) => ({
+      schedules: show.schedules.map(({ id, date, time }) => ({
+        id,
         date,
         time,
       })),
+      imageUrl: show.images.map(({ imageUrl }) => imageUrl),
       createdAt: show.createdAt,
       updatedAt: show.updatedAt,
       deletedAt: show.deletedAt,
