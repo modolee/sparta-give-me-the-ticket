@@ -11,7 +11,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // 이미 로그인 했는지 확인
   if (window.localStorage.getItem('accessToken')) {
-    alert('이미 로그인한 사용자입니다.');
+    alert('잘못된 접근입니다. 다시 시도해 주세요.');
+    window.localStorage.clear();
     window.location.href = '/views';
   }
 
