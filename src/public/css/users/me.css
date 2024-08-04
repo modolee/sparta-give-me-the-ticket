@@ -1,0 +1,172 @@
+.container {
+  display: block;
+  max-width: 680px;
+  width: 80%;
+  margin: 50px auto;
+}
+
+h1 {
+  color: #e91e63;
+  font-size: 48px;
+  letter-spacing: -3px;
+  text-align: center;
+  margin: 50px 0 70px 0;
+  transition: 0.2s linear;
+}
+
+.links li a {
+  text-decoration: none;
+  color: #0f132a;
+  font-weight: bolder;
+  text-align: center;
+  cursor: pointer;
+}
+
+.links {
+  list-style-type: none;
+}
+
+.links li {
+  display: inline-block;
+  margin: 0 20px 0 0;
+  transition: 0.2s linear;
+}
+
+.links li:nth-child(2) {
+  opacity: 0.6;
+}
+
+.links li:nth-child(2):hover {
+  opacity: 1;
+}
+
+.links li:nth-child(3) {
+  opacity: 0.6;
+}
+
+.links li:nth-child(3):hover {
+  opacity: 1;
+}
+
+.links li:nth-child(4) {
+  opacity: 0.6;
+}
+
+.links li:nth-child(4):hover {
+  opacity: 1;
+}
+
+.links li:nth-child(5) {
+  opacity: 0.6;
+}
+
+.links li:nth-child(5):hover {
+  opacity: 1;
+}
+
+.content {
+  width: 100%;
+  max-width: 680px;
+  margin: 40px auto 10px;
+}
+
+.content #profileImg {
+  max-width: 200px; /* 최대 너비 설정 */
+  max-height: 200px; /* 최대 높이 설정 */
+  width: auto; /* 비율에 맞춰 너비 조절 */
+  height: auto; /* 비율에 맞춰 높이 조절 */
+  border-radius: 50%; /* 원형으로 표시 */
+  object-fit: cover; /* 비율에 맞게 잘림 */
+  border: 2px solid #ccc; /* 테두리 추가 */
+  display: block; /* 블록 요소로 표시 */
+  margin: 0 auto; /* 중앙 정렬 */
+}
+
+.content #nickname {
+  font-weight: bold;
+}
+
+.content #email {
+  font-weight: bold;
+}
+
+.content #point {
+  font-weight: bold;
+}
+
+.content .update__btn {
+  background: #1e87e9;
+  color: white;
+  display: block;
+  width: 90%;
+  max-width: 680px;
+  height: 50px;
+  border-radius: 8px;
+  margin: 0 auto;
+  border: none;
+  cursor: pointer;
+  font-size: 17px;
+  font-weight: bold;
+  font-family: 'Montserrat', sans-serif;
+  box-shadow: 0 15px 30px rgba(30, 84, 233, 0.36);
+  transition: 0.2s linear;
+}
+
+.content .update__btn:hover {
+  box-shadow: 0 0 0 rgba(30, 84, 233, 0);
+}
+
+.content .delete__btn {
+  background: #e91e62;
+  color: white;
+  display: block;
+  width: 90%;
+  max-width: 680px;
+  height: 50px;
+  border-radius: 8px;
+  margin: 0 auto;
+  border: none;
+  cursor: pointer;
+  font-size: 17px;
+  font-weight: bold;
+  font-family: 'Montserrat', sans-serif;
+  box-shadow: 0 15px 30px rgba(233, 30, 98, 0.36);
+  transition: 0.2s linear;
+}
+
+.content .delete__btn:hover {
+  box-shadow: 0 0 0 rgba(233, 30, 98, 0);
+}
+
+.separator {
+  display: block;
+  margin: 30px auto 10px;
+  text-align: center;
+  height: 40px;
+  position: relative;
+  background: transparent;
+  color: rgba(15, 19, 42, 0.4);
+  font-size: 13px;
+  width: 90%;
+  max-width: 680px;
+}
+
+.separator::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: 0;
+  background: rgba(15, 19, 42, 0.2);
+  height: 1px;
+  width: 45%;
+}
+
+.separator::after {
+  content: '';
+  position: absolute;
+  top: 8px;
+  right: 0;
+  background: rgba(15, 19, 42, 0.2);
+  height: 1px;
+  width: 45%;
+}
