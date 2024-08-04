@@ -67,6 +67,12 @@ jobs:
             echo "KAKAO_CLIENT_ID=${{ secrets.KAKAO_CLIENT_ID }}" >> .env
             echo "KAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET }}" >> .env
             echo "KAKAO_CALLBACK_URL=${{ secrets.KAKAO_CALLBACK_URL }}" >> .env
+            echo "ELASTIC_NODE=${{ secrets.ELASTIC_NODE }}" >> .env
+            echo "ELASTIC_MAX_RETRIES=${{ secrets.ELASTIC_MAX_RETRIES }}" >> .env
+            echo "ELASTIC_REQUEST_TIMEOUT=${{ secrets.ELASTIC_REQUEST_TIMEOUT }}" >> .env
+            echo "ELASTIC_PING_TIMEOUT=${{ secrets.ELASTIC_PING_TIMEOUT }}" >> .env
+            echo "ELASTIC_USERNAME=${{ secrets.ELASTIC_USERNAME }}" >> .env
+            echo "ELASTIC_PASSWORD=${{ secrets.ELASTIC_PASSWORD }}" >> .env
 
 
             # 의존성 설치
