@@ -95,7 +95,6 @@ export class SearchService {
   // show 동기화 (스케줄링)
   private async syncAllShows() {
     try {
-      // 삭제된 show를 가져와서 인덱스에서 삭제
       const [deletedShows, allShows] = await Promise.all([
         this.showRepository.find({ where: { deletedAt: MoreThan(new Date(0)) } }),
         this.showRepository.find({ where: { deletedAt: null } }),
@@ -103,7 +102,7 @@ export class SearchService {
 
       await Promise.all([
         ...deletedShows.map((show) => this.deleteShowIndex(show.id)),
-        ...allShows.map((show) => this.indexShowData(show)),
+        ...allShows.map((show) => this.createShowIndex(show)),
       ]);
     } catch (error) {
       throw new InternalServerErrorException(SHOW_MESSAGES.INDEX.FAIL);
@@ -134,7 +133,6 @@ export class SearchService {
           query: `*${search.replace(/ /g, '*')}*`,
           fields: ['title'],
           analyze_wildcard: true,
-          default_operator: 'AND',
         },
       });
     }
