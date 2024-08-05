@@ -23,8 +23,8 @@ import { AuthGuard } from '@nestjs/passport';
 
 @ApiTags('사용자')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'), RolesGuard)
-@Roles(Role.USER, Role.ADMIN)
+@UseGuards(RolesGuard)
+@Roles(Role.USER)
 @Controller('users')
 export class UsersController {
   constructor(private readonly userService: UsersService) {}
