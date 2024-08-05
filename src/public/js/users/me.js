@@ -2,12 +2,15 @@ document.addEventListener('DOMContentLoaded', function () {
   const myProfile = document.querySelector('#myProfile');
   const myPoint = document.querySelector('#myPoint');
   const myTicket = document.querySelector('#myTicket');
+  const myBookmark = document.querySelector('#myBookmark');
 
   const profileContent = document.querySelector('#profileContent');
   const pointLogContent = document.querySelector('#pointLogContent');
   const pointLogContainer = document.getElementById('pointLogContainer');
   const ticketListContent = document.querySelector('#ticketListContent');
   const ticketListContainer = document.getElementById('ticketListContainer');
+  const bookmarkListContent = document.querySelector('#bookmarkListContent');
+  const bookmarkListContainer = document.getElementById('bookmarkListContainer');
 
   const updateBtn = document.querySelector('#updateBtn');
   const deleteBtn = document.querySelector('#deleteBtn');
@@ -222,6 +225,69 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     } catch (err) {
       // 사용자 예매 목록 조회 실패 시 에러 처리
+      console.log(err.response.data);
+      const errorMessage = err.response.data.message;
+      alert(errorMessage);
+    }
+  }
+
+  //----------- my bookmark ---------------------
+  myBookmark.addEventListener('click', function (e) {
+    e.preventDefault();
+
+    myBookmark.parentElement.style.opacity = '1';
+    Array.from(myBookmark.parentElement.parentElement.children).forEach(function (sibling) {
+      if (sibling !== myBookmark.parentElement) sibling.style.opacity = '.6';
+    });
+
+    showContent(bookmarkListContent);
+    getBookmarkList();
+  });
+
+  async function getBookmarkList() {
+    try {
+      // 백엔드 사용자 북마크 목록 조회 API 호출
+      const response = await axios.get('/users/me/bookmark', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      console.log('Response data: ', response.data);
+
+      const bookmarkList = response.data.getBookmarkList;
+      console.log('Bookmark List: ', bookmarkList);
+
+      // 북마크 목록이 존재하지 않을 때
+      if (bookmarkList.length === 0) {
+        alert('북마크 목록이 없습니다.');
+        return;
+      }
+
+      bookmarkListContainer.innerHTML = '';
+
+      bookmarkList.forEach((log, index) => {
+        const logElement = document.createElement('div');
+        logElement.classList.add('bookmark-list');
+
+        const showIdElement = document.createElement('p');
+        showIdElement.textContent = `Show ID : ${log.showId}`;
+        logElement.appendChild(showIdElement);
+
+        const createdAtElement = document.createElement('p');
+        createdAtElement.textContent = `Bookmark date : ${log.createdAt}`;
+        logElement.appendChild(createdAtElement);
+
+        bookmarkListContainer.appendChild(logElement);
+
+        if (index < bookmarkList.length - 1) {
+          const separator = document.createElement('hr');
+          separator.classList.add('separator');
+          bookmarkListContainer.appendChild(separator);
+        }
+      });
+    } catch (err) {
+      // 사용자 북마크 목록 조회 실패 시 에러 처리
       console.log(err.response.data);
       const errorMessage = err.response.data.message;
       alert(errorMessage);
