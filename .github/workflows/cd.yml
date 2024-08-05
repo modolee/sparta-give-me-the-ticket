@@ -20,7 +20,6 @@ jobs:
       # SSH 접속 후 명령을 통해서 배포 진행
       - name: Configure SSH
         run: |
-
           mkdir -p ~/.ssh/
           echo "$SSH_KEY" > ~/.ssh/ec2.key
           chmod 400 ~/.ssh/ec2.key
@@ -37,4 +36,6 @@ jobs:
           SSH_HOST: ${{ secrets.AWS_EC2_HOST }}
 
       - name: Deploy to EC2
-        run: ssh ec2 'cd /home/ubuntu/Give_me_the_ticket && git switch main && git pull && echo "${{ secrets.ENV }}" > .env && ./scripts/run.sh'
+        run: ssh ec2 'cd /home/ubuntu/$PROJECT_DIR && git switch main && git pull && echo "${{ secrets.ENV }}" > .env && ./scripts/run.sh'
+        env:
+          PROJECT_DIR: Give_me_the_ticket
