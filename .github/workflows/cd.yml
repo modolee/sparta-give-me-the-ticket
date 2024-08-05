@@ -36,6 +36,4 @@ jobs:
           SSH_HOST: ${{ secrets.AWS_EC2_HOST }}
 
       - name: Deploy to EC2
-        run: ssh ec2 'cd /home/ubuntu/"$PROJECT_DIR" && git switch main && git pull && echo "${{ secrets.ENV }}" > .env && ./scripts/run.sh'
-        env:
-          PROJECT_DIR: Give_me_the_ticket
+        run: ssh ec2 'cd /home/ubuntu/Give_me_the_ticket && git switch main && git pull && echo "${{ secrets.ENV }}" > .env && ./scripts/run.sh'
