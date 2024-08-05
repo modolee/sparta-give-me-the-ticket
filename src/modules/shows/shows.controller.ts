@@ -175,7 +175,7 @@ export class ShowsController {
   ) {
     const ticket = await this.showsService.addTicketQueue(showId, createTicketDto, req.user);
     return {
-      status: HttpStatus.OK,
+      status: HttpStatus.CREATED,
       message: SHOW_TICKET_MESSAGES.COMMON.TICKET.SUCCESS,
       ticket,
     };
