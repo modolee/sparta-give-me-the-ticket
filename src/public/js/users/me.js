@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const myPoint = document.querySelector('#myPoint');
   const myTicket = document.querySelector('#myTicket');
   const myBookmark = document.querySelector('#myBookmark');
+  const myTrade = document.querySelector('#myTrade');
 
   const profileContent = document.querySelector('#profileContent');
   const pointLogContent = document.querySelector('#pointLogContent');
@@ -11,6 +12,8 @@ document.addEventListener('DOMContentLoaded', function () {
   const ticketListContainer = document.getElementById('ticketListContainer');
   const bookmarkListContent = document.querySelector('#bookmarkListContent');
   const bookmarkListContainer = document.getElementById('bookmarkListContainer');
+  const tradeLogContent = document.querySelector('#tradeLogContent');
+  const tradeLogContainer = document.getElementById('tradeLogContainer');
 
   const updateBtn = document.querySelector('#updateBtn');
   const deleteBtn = document.querySelector('#deleteBtn');
@@ -288,6 +291,73 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     } catch (err) {
       // 사용자 북마크 목록 조회 실패 시 에러 처리
+      console.log(err.response.data);
+      const errorMessage = err.response.data.message;
+      alert(errorMessage);
+    }
+  }
+
+  //----------- my trade ---------------------
+  myTrade.addEventListener('click', function (e) {
+    e.preventDefault();
+
+    myTrade.parentElement.style.opacity = '1';
+    Array.from(myTrade.parentElement.parentElement.children).forEach(function (sibling) {
+      if (sibling !== myTrade.parentElement) sibling.style.opacity = '.6';
+    });
+
+    showContent(tradeLogContent);
+    getTradeLog();
+  });
+
+  async function getTradeLog() {
+    try {
+      // 백엔드 사용자 거래 내역 조회 API 호출
+      const response = await axios.get('/users/me/trade', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      console.log('Response data: ', response.data);
+
+      const tradeLog = response.data.getTradeLog;
+      console.log('Trade Log: ', tradeLog);
+
+      // 거래 내역이 존재하지 않을 때
+      if (tradeLog.length === 0) {
+        alert('거래 내역이 없습니다.');
+        return;
+      }
+
+      tradeLogContainer.innerHTML = '';
+
+      tradeLog.forEach((log, index) => {
+        const logElement = document.createElement('div');
+        logElement.classList.add('trade-log');
+
+        const buyerIdElement = document.createElement('p');
+        buyerIdElement.textContent = `Buyer ID : ${log.buyerId}`;
+        logElement.appendChild(buyerIdElement);
+
+        const sellerIdElement = document.createElement('p');
+        sellerIdElement.textContent = `Seller ID : ${log.sellerId}`;
+        logElement.appendChild(sellerIdElement);
+
+        const createdAtElement = document.createElement('p');
+        createdAtElement.textContent = `Trade date : ${log.createdAt}`;
+        logElement.appendChild(createdAtElement);
+
+        tradeLogContainer.appendChild(logElement);
+
+        if (index < tradeLog.length - 1) {
+          const separator = document.createElement('hr');
+          separator.classList.add('separator');
+          tradeLogContainer.appendChild(separator);
+        }
+      });
+    } catch (err) {
+      // 사용자 거래 내역 조회 실패 시 에러 처리
       console.log(err.response.data);
       const errorMessage = err.response.data.message;
       alert(errorMessage);
