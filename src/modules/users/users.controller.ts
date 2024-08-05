@@ -19,11 +19,12 @@ import { ChargePointDto } from './dto/charge-point.dto';
 import { USER_MESSAGES } from 'src/commons/constants/users/user-message.constant';
 import { USER_BOOKMARK_MESSAGES } from 'src/commons/constants/users/user-bookmark-messages.constant';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
 
 @ApiTags('사용자')
 @ApiBearerAuth()
-@UseGuards(RolesGuard)
-@Roles(Role.USER)
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@Roles(Role.USER, Role.ADMIN)
 @Controller('users')
 export class UsersController {
   constructor(private readonly userService: UsersService) {}

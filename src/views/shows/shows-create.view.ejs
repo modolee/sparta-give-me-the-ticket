@@ -13,9 +13,6 @@
       crossorigin="anonymous"
     />
 
-    <!-- 커스텀 CSS 파일 링크 -->
-    <link rel="stylesheet" href="/src/public/css/shows/shows-create.css" />
-
     <!-- 부트스트랩 JS CDN -->
     <script
       src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"
@@ -31,7 +28,9 @@
     <!-- Axios CDN -->
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
-    <script type="module" src="/js/shows-create.js"></script>
+    <!-- 공연 생성 페이지에 필요한 CSS 및 JS -->
+    <link rel="stylesheet" href="/css/shows/shows-create.css" />
+    <script type="module" src="/js/shows/shows-create.js"></script>
   </head>
 
   <body>
@@ -77,7 +76,11 @@
           </div>
           <div class="mb-3">
             <label for="imageUrl" class="form-label">이미지 URL</label>
-            <input type="text" class="form-control" id="imageUrl" name="imageUrl" required />
+            <div id="imageInputsContainer">
+              <input type="text" class="form-control mb-2" name="imageUrl" required />
+            </div>
+            <button type="button" class="btn btn-secondary" id="addImageUrlBtn">이미지 추가</button>
+            <button type="button" class="btn btn-danger" id="removeImageUrlBtn">이미지 삭제</button>
             <div id="imagePreview" class="mt-2"></div>
           </div>
           <div class="mb-3">
