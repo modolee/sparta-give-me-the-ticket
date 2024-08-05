@@ -1,6 +1,10 @@
 document.addEventListener('DOMContentLoaded', function () {
   const myProfile = document.querySelector('#myProfile');
+  const myPoint = document.querySelector('#myPoint');
+
   const profileContent = document.querySelector('#profileContent');
+  const pointLogContent = document.querySelector('#pointLogContent');
+  const pointLogContainer = document.getElementById('pointLogContainer');
 
   const updateBtn = document.querySelector('#updateBtn');
   const deleteBtn = document.querySelector('#deleteBtn');
@@ -12,6 +16,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function showContent(content) {
     profileContent.style.display = 'none';
+    pointLogContent.style.display = 'none';
 
     content.style.display = 'block';
   }
@@ -20,7 +25,6 @@ document.addEventListener('DOMContentLoaded', function () {
   myProfile.addEventListener('click', function (e) {
     e.preventDefault();
 
-    const h1 = myProfile.closest('li').parentNode.previousSibling;
     myProfile.parentElement.style.opacity = '1';
     Array.from(myProfile.parentElement.parentElement.children).forEach(function (sibling) {
       if (sibling !== myProfile.parentElement) sibling.style.opacity = '.6';
@@ -57,6 +61,77 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     } catch (err) {
       // 사용자 프로필 조회 실패 시 에러 처리
+      console.log(err.response.data);
+      const errorMessage = err.response.data.message;
+      alert(errorMessage);
+    }
+  }
+
+  //----------- my point ---------------------
+  myPoint.addEventListener('click', function (e) {
+    e.preventDefault();
+
+    myPoint.parentElement.style.opacity = '1';
+    Array.from(myPoint.parentElement.parentElement.children).forEach(function (sibling) {
+      if (sibling !== myPoint.parentElement) sibling.style.opacity = '.6';
+    });
+
+    showContent(pointLogContent);
+    getPointLog();
+  });
+
+  async function getPointLog() {
+    try {
+      // 백엔드 사용자 포인트 내역 조회 API 호출
+      const response = await axios.get('/users/me/point', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      console.log('Response data: ', response.data);
+
+      const pointLog = response.data.getPointLog;
+      console.log('Point Log: ', pointLog);
+
+      // 포인트 내역이 존재하지 않을 때
+      if (pointLog.length === 0) {
+        alert('포인트 내역이 없습니다.');
+        return;
+      }
+
+      pointLogContainer.innerHTML = '';
+
+      pointLog.forEach((log, index) => {
+        const logElement = document.createElement('div');
+        logElement.classList.add('point-log');
+
+        const createdAtElement = document.createElement('p');
+        createdAtElement.textContent = `Date : ${log.createdAt}`;
+        logElement.appendChild(createdAtElement);
+
+        const priceElement = document.createElement('p');
+        priceElement.textContent = `Price : ${log.price}`;
+        logElement.appendChild(priceElement);
+
+        const descriptionElement = document.createElement('p');
+        descriptionElement.textContent = `Description : ${log.description}`;
+        logElement.appendChild(descriptionElement);
+
+        const typeElement = document.createElement('p');
+        typeElement.textContent = `Type : ${log.type}`;
+        logElement.appendChild(typeElement);
+
+        pointLogContainer.appendChild(logElement);
+
+        if (index < pointLog.length - 1) {
+          const separator = document.createElement('hr');
+          separator.classList.add('separator');
+          pointLogContainer.appendChild(separator);
+        }
+      });
+    } catch (err) {
+      // 사용자 포인트 내역 조회 실패 시 에러 처리
       console.log(err.response.data);
       const errorMessage = err.response.data.message;
       alert(errorMessage);
