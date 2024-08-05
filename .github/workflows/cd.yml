@@ -77,7 +77,7 @@ jobs:
 
             # 의존성 설치
             # yarn --frozen-lockfile
-            npm ci
+            npm ci --prefer-offline --no-audit
 
             # 빌드 (ts 아니면 생략 가능)
             # yarn build
