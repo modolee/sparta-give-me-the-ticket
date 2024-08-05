@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Page</title>
+
+  <!-- 부트스트랩 CSS CDN-->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+
+  <!-- 부트스트랩 JS CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"
+    integrity="sha384-oBqDVmMz9ATKxIep9tiCxS/Z9fNfEXiDAYTujMAeBAsjFuCZSmKbSSUnQlmh/jp3"
+    crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.min.js"
+    integrity="sha384-cuYeSxntonz0PPNlHhBs68uyIAVpIIOZZ5JqeqvYYIcEL727kskC66kF92t6Xl2V"
+    crossorigin="anonymous"></script>
+
+  <!-- 마이 페이지에 필요한 CSS 및 JS -->
+  <link rel="stylesheet" href="/css/users/me.css">
+  <script type="module" src="/js/users/me.js"></script>
+</head>
+
+<body>
+  <!-- include 안에는 상대 경로 작성 -->
+  <%- include('../common/header.view.ejs') %>
+    <main>
+      <div class="container">
+        <!-- Heading -->
+        <h1>MY PAGE</h1>
+
+        <!-- Links -->
+        <ul class="links">
+          <li><a href="#" id="myProfile">MY PROFILE</a></li>
+          <li><a href="#" id="myPoint">MY POINT</a></li>
+          <li><a href="#" id="myTicket">MY TICKET</a></li>
+          <li><a href="#" id="myBookmark">MY BOOKMARK</a></li>
+          <li><a href="#" id="myTrade">MY TRADE</a></li>
+        </ul>
+
+        <!-- Profile Content -->
+        <div class="content" id="profileContent">
+          <img alt="Profile Image" id="profileImg" style="max-width: 200px; max-height: 200px;">
+          <p>Nickname : <span id="nickname"></span></p>
+          <p>Email : <span id="email"></span></p>
+          <p>Point : <span id="point"></span></p>
+          <!-- update user button -->
+          <button class="update__btn" id="updateBtn">회원 정보 수정하기</button>
+          <!-- separator -->
+          <div class="separator">
+            <p>OR</p>
+          </div>
+          <!-- delete user button -->
+          <button class="delete__btn" id="deleteBtn">회원 탈퇴하기</button>
+        </div>
+
+        <!-- Point Log Content -->
+        <div class="content" id="pointLogContent" style="display: none;">
+          <div id="pointLogContainer"></div>
+        </div>
+
+        <!-- Ticket List Content -->
+        <div class="content" id="ticketListContent" style="display: none;">
+          <div id="ticketListContainer"></div>
+        </div>
+
+        <!-- Bookmark List Content -->
+        <div class="content" id="bookmarkListContent" style="display: none;">
+          <div id="bookmarkListContainer"></div>
+        </div>
+
+        <!-- Trade Log Content -->
+        <div class="content" id="tradeLogContent" style="display: none;">
+          <div id="tradeLogContainer"></div>
+        </div>
+      </div>
+    </main>
+    <footer>
+    </footer>
+</body>
+
+</html>

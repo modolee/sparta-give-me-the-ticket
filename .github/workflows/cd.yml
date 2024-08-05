@@ -32,7 +32,7 @@ jobs:
             [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
             # yarn global 설치 한 pm2 명령을 위한 설정 (npm 사용 시 불필요)
-            export PATH="$(yarn global bin):$PATH"
+            # export PATH="$(yarn global bin):$PATH"
 
             # 프로젝트 폴더로 이동
             cd /home/ubuntu/Give_me_the_ticket
@@ -46,21 +46,7 @@ jobs:
             # .env 파일 생성
             # ">" 는 생성 또는 덮어쓰기
             # ">>" 는 내용 덧붙이기
-            echo "SERVER_PORT=${{ secrets.SERVER_PORT }}" > .env
-            echo "DB_HOST=${{ secrets.DB_HOST }}" >> .env
-            echo "DB_PORT=${{ secrets.DB_PORT }}" >> .env
-            echo "DB_USER=${{ secrets.DB_USER }}" >> .env
-            echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
-            echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env
-            echo "DB_SYNC=${{ secrets.DB_SYNC }}" >> .env
-            echo "JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}" >> .env
-            echo "REFRESH_SECRET_KEY=${{ secrets.REFRESH_SECRET_KEY }}" >> .env
-            echo "AWS_S3_REGION=${{ secrets.AWS_S3_REGION }}" >> .env
-            echo "AWS_S3_ACCESS_KEY=${{ secrets.AWS_S3_ACCESS_KEY }}" >> .env
-            echo "AWS_S3_SECRET_KEY=${{ secrets.AWS_S3_SECRET_KEY }}" >> .env
-            echo "AWS_BUCKET=${{ secrets.AWS_BUCKET }}" >> .env
-
-
+            echo "${{ secrets.ENV }}" > .env
 
             # 의존성 설치
             # yarn --frozen-lockfile
@@ -74,7 +60,7 @@ jobs:
             pm2 delete Ticketing
 
             # 서버를 PM2로 실행
-            pm2 --name Ticketing start dist/main.js
+            pm2 --name Ticketing start dist/src/main.js
 
             # PM2 설정 저장 (선택사항, startup 설정을 해놨다면)
             pm2 save
