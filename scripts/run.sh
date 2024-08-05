@@ -5,20 +5,6 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
-# 프로젝트 폴더로 이동
-cd /home/ubuntu/Give_me_the_ticket
-
-# main 브랜치로 이동
-git switch main
-
-# 최신 소스 코드를 가져옴
-git pull
-
-# .env 파일 생성
-# ">" 는 생성 또는 덮어쓰기
-# ">>" 는 내용 덧붙이기
-echo "${{ secrets.ENV }}" > .env
-
 # 의존성 설치
 npm ci
 
