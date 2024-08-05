@@ -3,13 +3,13 @@ name: Sparta Nest.js CI
 on: # 언제 실행 될지 정의
   workflow_dispatch: # 수동 실행
   push: # PUSH 됐을 때
-    branches: [dev] # main 브랜치
+    branches: [main] # main 브랜치
   pull_request: # PR
     # opened: 새롭게 생성됐을 때
     # reopened: close 상태에서 다시 open으로 변경 됐을 때
     # synchronize: open 상태에서 추가 commit 등으로 갱신 됐을 때
     types: [opened, reopened, synchronize] # (생략가능) types를 명시하지 않았을 때 적용되는 3가지 이벤트
-    branches: [dev] # main 브랜치
+    branches: [main] # main 브랜치
 
 jobs:
   # 실행 할 작업 이름 지정 "ci-test"
