@@ -430,7 +430,7 @@ export class ShowsService {
       }
 
       if (user.point < show.price) {
-        throw new ForbiddenException(SHOW_TICKET_MESSAGES.COMMON.POINT.NOT_ENOUGH);
+        throw new BadRequestException(SHOW_TICKET_MESSAGES.COMMON.POINT.NOT_ENOUGH);
       }
 
       // 사용자의 포인트 차감
@@ -549,7 +549,7 @@ export class ShowsService {
       await queryRunner.manager.save(Ticket, ticket);
 
       user.point += refundPoint;
-      console.log(refundPoint);
+
       await queryRunner.manager.save(User, user);
 
       // 잔여 좌석을 증가시키기 위해 티켓 안에 있는 스케줄 id랑 같은 스케줄 id를 찾습니다.
