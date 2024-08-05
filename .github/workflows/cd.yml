@@ -46,38 +46,11 @@ jobs:
             # .env 파일 생성
             # ">" 는 생성 또는 덮어쓰기
             # ">>" 는 내용 덧붙이기
-            echo "SERVER_PORT=${{ secrets.SERVER_PORT }}" > .env
-            echo "DB_HOST=${{ secrets.DB_HOST }}" >> .env
-            echo "DB_PORT=${{ secrets.DB_PORT }}" >> .env
-            echo "DB_USER=${{ secrets.DB_USER }}" >> .env
-            echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
-            echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env
-            echo "DB_SYNC=${{ secrets.DB_SYNC }}" >> .env
-            echo "JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}" >> .env
-            echo "REFRESH_SECRET_KEY=${{ secrets.REFRESH_SECRET_KEY }}" >> .env
-            echo "AWS_S3_REGION=${{ secrets.AWS_S3_REGION }}" >> .env
-            echo "AWS_S3_ACCESS_KEY=${{ secrets.AWS_S3_ACCESS_KEY }}" >> .env
-            echo "AWS_S3_SECRET_KEY=${{ secrets.AWS_S3_SECRET_KEY }}" >> .env
-            echo "AWS_BUCKET=${{ secrets.AWS_BUCKET }}" >> .env
-            echo "REDIS_HOST=${{ secrets.REDIS_HOST }}" >> .env
-            echo "REDIS_PORT=${{ secrets.REDIS_PORT }}" >> .env
-            echo "REDIS_USERNAME=${{ secrets.REDIS_USERNAME }}" >> .env
-            echo "REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}" >> .env
-            echo "REDIS_DBNAME=${{ secrets.REDIS_DBNAME }}" >> .env
-            echo "KAKAO_CLIENT_ID=${{ secrets.KAKAO_CLIENT_ID }}" >> .env
-            echo "KAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET }}" >> .env
-            echo "KAKAO_CALLBACK_URL=${{ secrets.KAKAO_CALLBACK_URL }}" >> .env
-            echo "ELASTIC_NODE=${{ secrets.ELASTIC_NODE }}" >> .env
-            echo "ELASTIC_MAX_RETRIES=${{ secrets.ELASTIC_MAX_RETRIES }}" >> .env
-            echo "ELASTIC_REQUEST_TIMEOUT=${{ secrets.ELASTIC_REQUEST_TIMEOUT }}" >> .env
-            echo "ELASTIC_PING_TIMEOUT=${{ secrets.ELASTIC_PING_TIMEOUT }}" >> .env
-            echo "ELASTIC_USERNAME=${{ secrets.ELASTIC_USERNAME }}" >> .env
-            echo "ELASTIC_PASSWORD=${{ secrets.ELASTIC_PASSWORD }}" >> .env
-
+            echo "${{ secrets.ENV }}" > .env
 
             # 의존성 설치
             # yarn --frozen-lockfile
-            npm ci --prefer-offline --no-audit
+            npm ci
 
             # 빌드 (ts 아니면 생략 가능)
             # yarn build
