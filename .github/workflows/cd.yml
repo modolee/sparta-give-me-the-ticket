@@ -58,10 +58,10 @@ jobs:
           SSH_HOST: ${{ secrets.AWS_EC2_HOST }}
 
       - name: Prepare to deploy
-        run: ssh ec2 'cd $PROJECT_DIR && git switch main && git pull && echo "${{ secrets.ENV }}" > .env'
+        run: ssh ec2 'cd ${{ env.PROJECT_DIR }} && git switch main && git pull && echo "${{ secrets.ENV }}" > .env'
 
       - name: Copy file to EC2
-        run: rsync -avzP -e ssh ./dist ec2:$PROJECT_DIR/
+        run: rsync -avzP -e ssh ./dist ec2:${{ env.PROJECT_DIR }}/
 
       - name: Restart PM2
-        run: ssh ec2 'cd $PROJECT_DIR && ./scripts/run.sh'
+        run: ssh ec2 'cd ${{ env.PROJECT_DIR }} && ./scripts/run.sh'
