@@ -7,6 +7,9 @@ on:
     types: [completed] # 완료 되었을 때
     branches: [main] # main 브랜치
 
+env:
+  PROJECT_DIR: /home/ubuntu/Give_me_the_ticket
+
 jobs:
   deploy:
     # workflow 완료 후 결과가 성공 일 때
@@ -35,5 +38,16 @@ jobs:
           SSH_KEY: ${{ secrets.AWS_EC2_PEM_KEY }}
           SSH_HOST: ${{ secrets.AWS_EC2_HOST }}
 
-      - name: Deploy to EC2
-        run: ssh ec2 'cd /home/ubuntu/Give_me_the_ticket && git switch main && git pull && echo "${{ secrets.ENV }}" > .env && ./scripts/run.sh'
+      - name: Build Nest.js code
+        run: |
+          npm ci
+          npm run build
+
+      - name: Prepare to deploy
+        run: ssh ec2 'cd $PROJECT_DIR && git switch main && git pull && echo "${{ secrets.ENV }}" > .env'
+
+      - name: Copy file to EC2
+        run: rsync -avzP -e ssh ./dist ec2:$PROJECT_DIR/
+
+      - name: Restart PM2
+        run: ssh ec2 'cd $PROJECT_DIR && ./scripts/run.sh'

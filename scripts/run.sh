@@ -5,12 +5,6 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
-# 의존성 설치
-npm ci
-
-# 빌드 (ts 아니면 생략 가능)
-npm run build
-
 # PM2로 실행 중인 서버 중지 및 삭제
 pm2 delete Ticketing
 
